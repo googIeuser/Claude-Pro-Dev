@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-04
+
+- Live hook doctor, external read-only installation doctor and registration-conflict isolation.
+- Explicit project checks with real exit-code receipts, UNKNOWN/stale states and body-free session reports.
+- PowerShell guard/filter support; failure context gets log budget before head/tail noise.
+- Rename optional checklist to engineering: the live host refused the former /prodev name because its skill already used it.
+- Explicitly update an old cache when upgrading an existing user-scope plugin ID; regression test covers v0.1 to v0.2.
+- Live CLI smoke and a reproducible A/B pilot with independent acceptance, plugin isolation and a shared metrics collector.
+- Exclude generated host/MCP declarations from release archives. No measured subscription savings claimed.
+
 ## 0.1.0 — 2026-10-04
 
 - Initial single-plugin engineering Core, usage/cache HUD, observed agent flow, manual queue and local next steps.

@@ -1,6 +1,11 @@
-import { CORE_RULES, riskyCommand, secretPath, redact, redactValue, filterResult } from './policy.js';
+import { CORE_RULES, riskyCommand, secretPath, redact, redactValue, filterResult, filterText, isShell, checkKind, checkStatus, parseProfile } from './policy.js';
 
 const refresh = $ => $.ui.invalidate('ui.render');
+async function loadProfile($) {
+  const info = await $.fs.stat('.prodev.json');
+  if (info.kind !== 'file' || info.size > 16384 || info.isLink) throw new Error('Profile must be a regular file of at most 16 KiB.');
+  return parseProfile(await $.fs.read('.prodev.json'));
+}
 
 export function register(on) {
   // Session-only state; queue prompts and tool output are never saved to disk.
@@ -16,6 +21,19 @@ export function register(on) {
   const agents = new Map();
   const reads = new Set();
   const finishedTurns = new Set();
+  let revision = 0, receiptId = 0, completed = 0, durationMs = 0;
+  const receipts = [];
+  const busyChecks = new Set();
+  const observed = { 'session.start': 0, 'prompt.context': 0, 'session.measure': 0, 'tool.call': 0, 'turn.complete': 0 };
+  const registered = new Set(), collisions = new Set();
+  const receipt = (name, source, result, atRevision, elapsed = null) => {
+    const item = { id: ++receiptId, name, source, ...checkStatus(result), revision: atRevision, durationMs: elapsed };
+    receipts.push(item); if (receipts.length > 50) receipts.shift();
+    lastFailed = item.status === 'fail';
+    return item;
+  };
+  const receiptText = item => `${item.name}: ${item.status.toUpperCase()} | exit ${item.exitCode ?? 'unknown'} | ${item.revision === revision ? 'current observed revision' : 'stale after observed activity'}`;
+  const checksText = () => receipts.length ? receipts.map(receiptText).join('\n') : 'No checks observed. /prodev-checks profile lists configured checks; /prodev-checks run <name> explicitly runs one.';
 
   const cache = () => {
     const total = tokens.input + tokens.read + tokens.write;
@@ -26,7 +44,7 @@ export function register(on) {
     return item ? item.percentUsed + '% used' : 'unknown';
   };
   const headline = () => `Pro Dev | 5h: ${windowText('five_hour')} | 7d: ${windowText('seven_day')} | cache: ${cache()} | context: ${usage.context.percent ?? 'unknown'}${usage.context.percent === undefined ? '' : '%'}`;
-  const counters = () => `tools: ${calls} | repeat reads: ${repeated} | agents: ${[...agents.values()].filter(a => a.state === 'running').length} | queue: ${queue.length} | filtered: ${shortened} | blocked: ${blocked}`;
+  const counters = () => `tools: ${calls} | repeat reads: ${repeated} | agents: ${[...agents.values()].filter(a => a.state === 'running').length} | queue: ${queue.length} | filtered: ${shortened} | blocked: ${blocked} | checks: ${receipts.filter(r => r.status === 'pass' && r.revision === revision).length} current pass`;
   const suggestions = () => [
     ...(lastFailed ? ['Investigate the last failed check using a targeted error log.'] : []),
     ...(edits ? ['Review the diff and run the smallest relevant verification.'] : ['Identify the relevant files with one narrow search.']),
@@ -41,6 +59,9 @@ export function register(on) {
   };
 
   on('session.start', async ($, e, next) => {
+    observed['session.start']++;
+    // No token-count API, HTTP, timers or background agents.
+    try { usage = await $.session.usage(); } catch { /* No reading yet. */ }
     for (const [name, description, argumentHint] of [
       ['prodev', 'Show usage, counters and helper commands', ''],
       ['prodev-queue', 'Manage a session queue without automatic execution', 'add <text> | list | remove <id> | draft <id> | clear'],
@@ -48,18 +69,23 @@ export function register(on) {
       ['prodev-next', 'Show local next-step suggestions without a model call', ''],
       ['prodev-guard', 'Enable or disable the session destructive-command guard', 'on | off'],
       ['prodev-filter', 'Enable or disable long-output filtering', 'on | off'],
-    ]) await $.command.register({ name, description, argumentHint, immediate: true });
-    // No token-count API, HTTP, timers or background agents.
-    try { usage = await $.session.usage(); } catch { /* No reading yet. */ }
+      ['prodev-doctor', 'Diagnose loaded hooks, command conflicts and missing readings', ''],
+      ['prodev-checks', 'Verification receipts; explicitly run a trusted project check', 'profile | run <name>'],
+      ['prodev-report', 'Print session metrics JSON without prompts or tool bodies', ''],
+    ]) {
+      try { await $.command.register({ name, description, argumentHint, immediate: true }); registered.add(name); }
+      catch { collisions.add(name); }
+    }
     return next(e);
   });
 
-  on('prompt.context', ($, e, next) => next({
-    ...e,
-    blocks: e.blocks.some(b => b.name === 'prodevCore') ? e.blocks : [...e.blocks, { name: 'prodevCore', text: CORE_RULES }],
-  }));
+  on('prompt.context', ($, e, next) => {
+    observed['prompt.context']++;
+    return next({ ...e, blocks: e.blocks.some(b => b.name === 'prodevCore') ? e.blocks : [...e.blocks, { name: 'prodevCore', text: CORE_RULES }] });
+  });
 
   on('session.measure', ($, e, next) => {
+    observed['session.measure']++;
     usage = { context: e.context, rateLimits: e.rateLimits, cost: e.cost };
     refresh($);
     return next(e);
@@ -67,7 +93,8 @@ export function register(on) {
 
   on('tool.call', async ($, e, next) => {
     calls++;
-    const reason = guard && e.tool === 'Bash' ? riskyCommand(e.command) : null;
+    observed['tool.call']++;
+    const reason = guard && isShell(e.tool) ? riskyCommand(e.command) : null;
     const paths = [e.file_path, e.path];
     if (reason || paths.some(p => p && secretPath(p))) {
       blocked++;
@@ -77,13 +104,18 @@ export function register(on) {
     const readKey = ['Read', 'Grep', 'Glob'].includes(e.tool)
       ? JSON.stringify([e.tool, e.agentId ?? 'main', e.file_path, e.path, e.pattern, e.glob, e.offset, e.limit, e.output_mode, e.head_limit, e.type, e['-A'], e['-B'], e['-C'], e['-i'], e['-n'], e.multiline]) : null;
     if (readKey && reads.has(readKey)) repeated++;
-    if (['Write', 'Edit', 'MultiEdit', 'Bash'].includes(e.tool)) reads.clear();
+    if (['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(e.tool) || isShell(e.tool) || e.tool.startsWith('mcp__')) { reads.clear(); revision++; }
+    const atRevision = revision;
     refresh($);
     const result = await next(e); // Keeps Claude Code's permission checks.
     if (result.deny !== undefined) return result;
     if (readKey && !result.isError) { reads.add(readKey); if (reads.size > 256) reads.delete(reads.values().next().value); }
     if (['Write', 'Edit', 'MultiEdit'].includes(e.tool) && !result.isError) edits++;
-    if (e.tool === 'Bash') lastFailed = !!result.isError || Number(result.result?.exitCode ?? 0) !== 0 || /\b(?:error|failed|fatal)\b/i.test(result.result?.stderr ?? '');
+    if (isShell(e.tool)) {
+      lastFailed = checkStatus(result).status === 'fail';
+      const kind = checkKind(e.command);
+      if (kind) receipt(kind, e.tool, result, atRevision);
+    }
     let clean = redactValue(result.result);
     if (filtering) {
       const bounded = filterResult(e.tool, clean);
@@ -113,13 +145,17 @@ export function register(on) {
   });
 
   on('turn.complete', ($, e, next) => {
+    observed['turn.complete']++;
     const turnKey = `${e.agentId ?? 'main'}:${e.turnId}`;
-    if (e.usage && !finishedTurns.has(turnKey)) {
-      tokens.input += e.usage.input_tokens ?? 0;
-      tokens.output += e.usage.output_tokens ?? 0;
-      tokens.read += e.usage.cache_read_input_tokens ?? 0;
-      tokens.write += e.usage.cache_creation_input_tokens ?? 0;
-      observedUsage = true;
+    if (!finishedTurns.has(turnKey)) {
+      completed++; durationMs += e.durationMs ?? 0;
+      if (e.usage) {
+        tokens.input += e.usage.input_tokens ?? 0;
+        tokens.output += e.usage.output_tokens ?? 0;
+        tokens.read += e.usage.cache_read_input_tokens ?? 0;
+        tokens.write += e.usage.cache_creation_input_tokens ?? 0;
+        observedUsage = true;
+      }
       finishedTurns.add(turnKey);
       if (finishedTurns.size > 512) finishedTurns.delete(finishedTurns.values().next().value);
     }
@@ -128,7 +164,48 @@ export function register(on) {
     return next(e);
   });
 
-  on('command.run', { command: 'prodev' }, () => ({ text: [headline(), counters(), `observed input: ${tokens.input}, cache read: ${tokens.read}, cache write: ${tokens.write}, output: ${tokens.output}`, `guard: ${guard ? 'on' : 'off'} | filter: ${filtering ? 'on' : 'off'}`, 'Helpers: /prodev-queue, /prodev-flow [mermaid], /prodev-next, /prodev-guard on|off, /prodev-filter on|off'].join('\n') }));
+  on('command.run', { command: 'prodev' }, () => ({ text: [headline(), counters(), `observed input: ${tokens.input}, cache read: ${tokens.read}, cache write: ${tokens.write}, output: ${tokens.output}`, `guard: ${guard ? 'on' : 'off'} | filter: ${filtering ? 'on' : 'off'}`, 'Helpers: /prodev-doctor, /prodev-checks, /prodev-report, /prodev-queue, /prodev-flow [mermaid], /prodev-next, /prodev-guard on|off, /prodev-filter on|off'].join('\n') }));
+  on('command.run', { command: 'prodev-doctor' }, () => ({ text: [
+    'Pro Dev 0.2.0 doctor (this session; not an installation or security certificate)',
+    ...Object.entries(observed).map(([name, n]) => `${name}: ${n ? 'observed (' + n + ')' : 'not observed'}`),
+    ...[...collisions].map(name => `${name}: registration failed; inspect other mods with /plugin`),
+    `helpers registered: ${registered.size} | quota: ${usage.rateLimits.some(r => Number.isFinite(r.percentUsed)) ? 'host reading available' : 'unknown'}`,
+    `guard: ${guard ? 'on' : 'off'} | filtering: ${filtering ? 'on' : 'off'} | redaction: active`,
+    'Unknown/stale receipts are not passes. Shell aliases/encoded commands and external edits are not fully observed.',
+    'If this command is unavailable, run the installed scripts/doctor.ps1 outside Claude.',
+  ].join('\n') }));
+  on('command.run', { command: 'prodev-report' }, () => ({ text: JSON.stringify({
+    schemaVersion: 1, version: '0.2.0', scope: 'session-only',
+    counters: { tools: calls, repeatedReads: repeated, blocked, filtered: shortened, edits, queue: queue.length, agents: agents.size },
+    turns: { completed, durationMs }, tokens: observedUsage ? tokens : null,
+    rateLimits: usage.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed ?? null })),
+    receipts: receipts.map(r => ({ ...r, stale: r.revision !== revision })),
+    limitations: ['Only observed activity; no filesystem content verification', 'Token totals are not subscription quota savings'],
+  }, null, 2) }));
+  on('command.run', { command: 'prodev-checks' }, async ($, e) => {
+    const args = e.args.trim();
+    if (!args) return { text: checksText() };
+    if (args !== 'profile' && !/^run [a-z][a-z0-9-]{0,31}$/.test(args)) return { text: 'Usage: /prodev-checks [profile | run <name>]' };
+    let checks;
+    try { checks = await loadProfile($); }
+    catch (error) { return { text: 'Project check refused or unavailable. ' + redact(String(error.message)).slice(0, 300) }; }
+    if (args === 'profile') return { text: checks.length ? checks.map(c => `${c.name}: ${redact(c.argv.join(' '))} (timeout ${c.timeoutMs}ms)`).join('\n') + '\nReview .prodev.json first. run <name> executes that program as your Windows user, without a shell.' : 'No configured checks.' };
+    const check = checks.find(c => c.name === args.slice(4));
+    if (!check) return { text: 'Unknown check; use /prodev-checks profile.' };
+    if (busyChecks.size) return { text: 'A project check is already running; wait for its receipt.' };
+    busyChecks.add(check.name); reads.clear(); revision++;
+    const atRevision = revision;
+    try {
+      const began = await $.clock.now();
+      const result = await $.process.run(check.argv, { timeoutMs: check.timeoutMs });
+      const item = receipt(check.name, 'profile', result, atRevision, Math.max(0, await $.clock.now() - began));
+      refresh($);
+      return { text: receiptText(item) + '\n' + filterText(redact((result.stdout ?? '') + '\n' + (result.stderr ?? '')), 6000, 80) };
+    } catch {
+      const item = receipt(check.name, 'profile', {}, atRevision);
+      return { text: receiptText(item) + '\nProcess did not produce an exit code (start failure, refusal or timeout). Inspect the selected program locally.' };
+    } finally { busyChecks.delete(check.name); }
+  });
   on('command.run', { command: 'prodev-flow' }, ($, e) => ({ text: flow(e.args.trim() === 'mermaid') }));
   on('command.run', { command: 'prodev-next' }, () => ({ text: suggestions().map((s, i) => `${i + 1}. ${s}`).join('\n') }));
   on('command.run', { command: ['prodev-guard', 'prodev-filter'] }, ($, e) => {

@@ -1,6 +1,23 @@
 # Verification evidence — 2026-10-04
 
-Local Claude version: **2.1.289**. Supported target floor: **2.1.287**, configured in CI but not separately run on the local machine. Check current hosted results on the [Actions page](https://github.com/googIeuser/Claude-Pro-Dev/actions).
+Local Claude version: **2.1.289**. Supported target floor: **2.1.287**. Initial v0.1 hosted CI passed on both binaries and both PowerShell shells: [four-job run](https://github.com/googIeuser/Claude-Pro-Dev/actions/runs/37221899516). Check current v0.2 hosted results on the [Actions page](https://github.com/googIeuser/Claude-Pro-Dev/actions).
+
+## v0.2 local and live evidence
+
+| Check | Evidence |
+|---|---|
+| Actual native Mods engine | 48 tests passed, 0 failed; 17 added confidence tests |
+| Long shell output | Bash and PowerShell retain a middle error, following stack and assertion despite huge head/tail noise; bounded output and exit metadata |
+| Verification receipts | Numeric success/failure, unknown/background, stale after edits, and concurrent-edit handling covered |
+| Actual CLI helper smoke | 16 helper results; 0 model turns and 0 API duration; real Windows processes return exit 0/7; synthetic secret masked |
+| Actual CMD interactive terminal | HUD at 80 columns, doctor, queue add/list/draft; draft fills composer and waits for Enter; report shows 0 completed model turns |
+| Actual model work | Four final Sonnet/low runs; 4/4 independent six-case acceptance, correct A/B isolation, no tool errors/permission denials |
+| PowerShell 5.1 and 7 | Fresh isolated upgrade/reinstall/rollback, doctor, metrics, independent acceptance and release-reproducibility suites passed |
+| Existing user profile | Upgraded to 0.2.0; installed doctor passed; model/effort/permission/status-line and unrelated plugin fields preserved |
+
+The live doctor exposed a /prodev collision with this package's own skill; renaming the optional skill to engineering fixed all nine helper registrations. An upgrade regression exposed `plugin install` retaining the old cache; the installer now explicitly updates an older version for the same user-scope ID. Calibration runs and the lack of a demonstrated savings result are retained in [PILOT.md](PILOT.md).
+
+Native test external engine responses are controlled; live smoke uses real command registrations, real queue state and Windows processes. The CMD terminal check uses actual interactive CLI rendering and input through a pseudoterminal, not a Desktop screenshot. Desktop is covered by render-tree tests only. Real agent-spawn UI, resizing, organization-managed policies, live quota accuracy and actual subscription savings remain unmeasured. Missing quota values were honestly unknown. No destructive command was executed; guard tests use controlled engine responses.
 
 Initial v0.1 validation recorded:
 
@@ -32,4 +49,4 @@ The prepared source was checked locally on the same date:
 
 Repository: [googIeuser/Claude-Pro-Dev](https://github.com/googIeuser/Claude-Pro-Dev). The READMEs use the real source installer URL. Version-pinned installation requires the matching release to have been published. Initial preparation evidence above describes local checks; hosted results are recorded by GitHub Actions.
 
-Not measured: live authenticated quota accuracy, true subscription savings, real window interaction, organization-managed policies and exact 2.1.287 binary behavior. Use the benchmark protocol and inspect hosted CI results before extending claims.
+The v0.1 observations above are historical. The v0.2 section adds live terminal/helper/model evidence; it does not extend those results to Desktop screens, account-wide quota accuracy or general savings.

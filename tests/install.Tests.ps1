@@ -47,6 +47,38 @@ Assert ($settings.enabledPlugins.'prodev@prodev-fixture-legacy' -eq $false) 'old
 Assert ($settings.enabledPlugins.'companion@prodev-fixture-legacy' -eq $true) 'unrelated installed plugin stays enabled'
 & $installer -SourcePath $package -ClaudeConfigDir $config
 & (Join-Path $package 'scripts\verify.ps1') -ClaudeConfigDir $config
+$shellExe = (Get-Process -Id $PID).Path
+$doctorJson = & $shellExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $package 'scripts\doctor.ps1') -ClaudeConfigDir $config -Json
+$doctorCode = $LASTEXITCODE
+$doctorReport = ($doctorJson -join "`n") | ConvertFrom-Json
+Assert ($doctorCode -eq 0 -and $doctorReport.ok -eq $true) 'external doctor confirms the installed plugin and preserved configuration'
+# Upgrade the same marketplace ID, rather than only testing a different legacy ID.
+$upgradeConfig = Join-Path $TestRoot 'upgrade-config'
+$upgradeSource = Join-Path $upgradeConfig 'prodev\package'
+New-Item -ItemType Directory -Force -Path $upgradeSource | Out-Null
+foreach ($name in @('.claude-plugin', 'plugins')) { Copy-Item -LiteralPath (Join-Path $package $name) -Destination $upgradeSource -Recurse }
+$oldManifest = Join-Path $upgradeSource 'plugins\prodev\.claude-plugin\plugin.json'
+$oldMarket = Join-Path $upgradeSource '.claude-plugin\marketplace.json'
+$oldPlugin = [IO.File]::ReadAllText($oldManifest) | ConvertFrom-Json
+$oldPlugin.version = '0.1.0'
+[IO.File]::WriteAllText($oldManifest, ($oldPlugin | ConvertTo-Json -Depth 8), $utf8)
+$oldCatalog = [IO.File]::ReadAllText($oldMarket) | ConvertFrom-Json
+$oldCatalog.plugins[0].version = '0.1.0'
+[IO.File]::WriteAllText($oldMarket, ($oldCatalog | ConvertTo-Json -Depth 8), $utf8)
+try {
+    $env:CLAUDE_CONFIG_DIR = $upgradeConfig
+    & $fixtureClaude plugin marketplace add $upgradeSource --json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Upgrade marketplace fixture failed.' }
+    & $fixtureClaude plugin install prodev@claude-pro-dev-local --scope user --json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Upgrade plugin fixture failed.' }
+} finally { $env:CLAUDE_CONFIG_DIR = $beforeFixtureEnv }
+& $installer -SourcePath $package -ClaudeConfigDir $upgradeConfig
+try {
+    $env:CLAUDE_CONFIG_DIR = $upgradeConfig
+    $upgraded = (& $fixtureClaude plugin list --json) | ConvertFrom-Json
+    $upgradedItem = @($upgraded | Where-Object { $_.id -eq 'prodev@claude-pro-dev-local' -and $_.scope -eq 'user' })
+    Assert ($upgradedItem.Count -eq 1 -and $upgradedItem[0].version -eq '0.2.0') 'v0.1 upgrades to v0.2 in the same user-scope marketplace'
+} finally { $env:CLAUDE_CONFIG_DIR = $beforeFixtureEnv }
 Assert ($true) 'a second install and verification succeed'
 $marketplaceDataPath = Join-Path $config 'plugins\known_marketplaces.json'
 $catalog = Get-Content -LiteralPath $marketplaceDataPath -Raw | ConvertFrom-Json

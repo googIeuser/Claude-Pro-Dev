@@ -1,4 +1,4 @@
-# Claude Pro Dev 0.1.0 - self-contained installer, Windows PowerShell 5.1+.
+# Claude Pro Dev 0.2.0 - self-contained installer, Windows PowerShell 5.1+.
 # Built from this template by scripts/build-release.ps1.
 [CmdletBinding()]
 param(
@@ -78,7 +78,7 @@ try {
     if ($SourcePath -and -not $UseEmbedded) {
         $SourcePath = (Resolve-Path -LiteralPath $SourcePath).ProviderPath
         if (-not (Test-Path -LiteralPath (Join-Path $SourcePath '.claude-plugin\marketplace.json'))) { throw 'SourcePath is not a Pro Dev package.' }
-        foreach ($name in @('.claude-plugin', 'plugins', 'scripts', 'docs', 'README.md', 'LICENSE')) {
+        foreach ($name in @('.claude-plugin', 'plugins', 'scripts', 'docs', 'benchmarks', 'README.md', 'README.tr.md', 'LICENSE')) {
             $from = Join-Path $SourcePath $name
             if (Test-Path -LiteralPath $from) { Copy-Item -LiteralPath $from -Destination $stage -Recurse }
         }
@@ -105,7 +105,7 @@ try {
     $manifest = Get-Content -LiteralPath (Join-Path $stage '.claude-plugin\marketplace.json') -Raw | ConvertFrom-Json
     if ($manifest.name -ne 'claude-pro-dev-local') { throw 'Unexpected marketplace name.' }
     $plugin = Get-Content -LiteralPath (Join-Path $stage 'plugins\prodev\.claude-plugin\plugin.json') -Raw | ConvertFrom-Json
-    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.1.0') { throw 'Unexpected plugin identity or version.' }
+    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.2.0') { throw 'Unexpected plugin identity or version.' }
     Invoke-Claude -Arguments @('plugin', 'validate', $stage, '--strict') | Out-Null
     Invoke-Claude -Arguments @('plugin', 'validate', (Join-Path $stage 'plugins\prodev'), '--strict') | Out-Null
     # Capture JSON arrays directly: @(... | ConvertFrom-Json) nests them in PS 5.1.
@@ -138,15 +138,23 @@ try {
     $installedAfter = Invoke-Claude -Arguments @('plugin', 'list', '--json') | ConvertFrom-Json
     $targetPlugin = @($installedAfter | Where-Object { $_.id -eq 'prodev@claude-pro-dev-local' -and $_.scope -eq 'user' })
     if ($targetPlugin.Count -ne 1) { throw 'Claude did not register prodev@claude-pro-dev-local in user scope.' }
+    # install is idempotent and can retain the old cache/version for an existing
+    # ID. Explicitly update that ID when upgrading, before verifying its version.
+    if ($targetPlugin[0].version -ne $plugin.version) {
+        Invoke-Claude -Arguments @('plugin', 'update', 'prodev@claude-pro-dev-local', '--scope', 'user', '--json') | Out-Null
+        $installedAfter = Invoke-Claude -Arguments @('plugin', 'list', '--json') | ConvertFrom-Json
+        $targetPlugin = @($installedAfter | Where-Object { $_.id -eq 'prodev@claude-pro-dev-local' -and $_.scope -eq 'user' })
+        if ($targetPlugin.Count -ne 1) { throw 'Claude did not retain the expected installation after updating.' }
+    }
     # enable returns an error when the plugin is already enabled.
     if ($targetPlugin[0].enabled -ne $true) {
         Invoke-Claude -Arguments @('plugin', 'enable', 'prodev@claude-pro-dev-local', '--scope', 'user', '--json') | Out-Null
     }
     & (Join-Path $target 'scripts\verify.ps1') -ClaudeConfigDir $ClaudeConfigDir
-    Write-Host "Claude Pro Dev 0.1.0 installed. Package: $target"
+    Write-Host "Claude Pro Dev 0.2.0 installed. Package: $target"
     Write-Host "Backups: $backup"
     foreach ($disabledPlugin in $disabledPlugins) { Write-Host "Disabled overlapping plugin (files retained): $disabledPlugin" }
-    Write-Host 'Start Claude Code, or run /reload-plugins. Check /plugin and /prodev.'
+    Write-Host 'Start Claude Code, or run /reload-plugins. Check /plugin, /prodev-doctor and /prodev.'
 } catch {
     $failure = $_
     if ($snapshotReady) {

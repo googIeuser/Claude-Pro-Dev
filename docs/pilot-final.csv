@@ -1,0 +1,5 @@
+"task","repeat","arm","requestedModel","effort","claudeVersion","correctnessPass","isolationPass","timedOut","exitCode","wallMs","completed","modelError","model","turns","durationMs","inputTokens","outputTokens","cacheReadTokens","cacheWriteTokens","apiCostUsd","toolRequests","toolErrors","repeatedReads","permissionDenials","agents"
+"signed-total","1","A","sonnet","low","2.1.289 (Claude Code)","True","True","False","0","12221","True","False","claude-sonnet-5-5","5","10532","6","849","22366","4689","0.0317312","4","0","0","0","0"
+"signed-total","1","B","sonnet","low","2.1.289 (Claude Code)","True","True","False","0","10326","True","False","claude-sonnet-5-5","5","8761","6","836","23443","5231","0.033984600000000004","4","0","0","0","0"
+"signed-total","2","B","sonnet","low","2.1.289 (Claude Code)","True","True","False","0","11526","True","False","claude-sonnet-5-5","5","9855","6","826","23443","5234","0.033896600000000006","4","0","0","0","0"
+"signed-total","2","A","sonnet","low","2.1.289 (Claude Code)","True","True","False","0","10365","True","False","claude-sonnet-5-5","5","8075","6","853","22366","4701","0.031819200000000006","4","0","0","0","0"

@@ -56,24 +56,38 @@ export function filterText(text, maxChars = 12000, maxLines = 160) {
   if (typeof text !== 'string') return text;
   const lines = text.split(/\r?\n/);
   if (lines.length <= maxLines && text.length <= maxChars) return text;
-  const indices = new Set();
-  for (let i = 0; i < Math.min(50, lines.length); i++) indices.add(i);
-  let errors = 0;
-  for (let i = 50; i < Math.max(50, lines.length - 50) && errors < 60; i++) {
-    if (/\b(?:error|fail(?:ed|ure)?|exception|traceback|fatal|panic|assert)\b/i.test(lines[i])) { indices.add(i); errors++; }
+  const selected = new Map();
+  // Reserve room for the header and a gap marker for every selected line.
+  let budget = Math.max(0, maxChars - 260 - maxLines * 40);
+  const take = i => {
+    if (i < 0 || i >= lines.length || selected.has(i) || selected.size >= maxLines || budget < 32) return;
+    const line = lines[i].slice(0, Math.min(700, budget - 32));
+    const clipped = line.length < lines[i].length ? line + ' [line clipped]' : line;
+    selected.set(i, clipped); budget -= clipped.length + 1;
+  };
+  // Failure lines have first claim on the character budget, then their nearby
+  // stack/assertion context. Head/tail noise cannot displace that evidence.
+  const errors = [];
+  for (let i = 0; i < lines.length && errors.length < 24; i++) {
+    if (/\b(?:error|fail(?:ed|ure)?|exception|traceback|fatal|panic|assert(?:ion)?)\b/i.test(lines[i])) errors.push(i);
   }
-  for (let i = Math.max(0, lines.length - 50); i < lines.length; i++) indices.add(i);
-  let selected = [...indices].sort((a, b) => a - b).map(i => lines[i]).join('\n');
-  if (selected.length > maxChars - 300) {
-    const budget = maxChars - 300;
-    selected = selected.slice(0, Math.floor(budget / 2)) + '\n[characters omitted]\n' + selected.slice(-Math.floor(budget / 2));
+  for (const i of errors) take(i);
+  for (const i of errors) for (const delta of [1, 2, 3, 4, -1, -2]) take(i + delta);
+  for (let i = 0; i < 50; i++) { take(i); take(lines.length - 50 + i); }
+  const output = [];
+  let previous = -1;
+  for (const [i, line] of [...selected].sort((a, b) => a[0] - b[0])) {
+    if (i > previous + 1) output.push(`[lines ${previous + 2}-${i} omitted]`);
+    output.push(line); previous = i;
   }
-  return `[Pro Dev: output shortened from ${lines.length} lines / ${text.length} chars; omitted content. Error sampling is best effort; rerun a targeted command for full evidence.]\n${selected}`;
+  if (previous < lines.length - 1) output.push(`[lines ${previous + 2}-${lines.length} omitted]`);
+  return `[Pro Dev: output shortened from ${lines.length} lines / ${text.length} chars; omitted content. Error context is best effort; rerun a targeted command for full evidence.]\n${output.join('\n')}`;
 }
 
 export function filterResult(tool, value) {
-  if (tool === 'Bash' && typeof value === 'string') return filterText(value);
-  if (tool === 'Bash' && value && typeof value === 'object') {
+  const shell = tool === 'Bash' || tool === 'PowerShell';
+  if (shell && typeof value === 'string') return filterText(value);
+  if (shell && value && typeof value === 'object') {
     const stdout = filterText(value.stdout);
     const stderr = filterText(value.stderr);
     return stdout === value.stdout && stderr === value.stderr ? value : { ...value, stdout, stderr };
@@ -92,4 +106,38 @@ export function filterResult(tool, value) {
     return changed ? { ...value, content } : value;
   }
   return value;
+}
+
+export const isShell = tool => tool === 'Bash' || tool === 'PowerShell';
+
+export function checkKind(command) {
+  const s = String(command ?? '');
+  if (/\b(?:test|tests|pytest|vitest|jest|unittest)\b|--test\b/i.test(s)) return 'test';
+  if (/\b(?:lint|eslint|ruff)\b/i.test(s)) return 'lint';
+  if (/\b(?:typecheck|tsc|mypy)\b/i.test(s)) return 'typecheck';
+  if (/\b(?:build|compile)\b/i.test(s)) return 'build';
+  return null;
+}
+
+export function checkStatus(result) {
+  const value = result.result ?? result;
+  if (value?.backgroundTaskId || value?.interrupted || value?.timedOutAfterMs) return { status: 'unknown', exitCode: null };
+  const exitCode = Number.isInteger(value?.exitCode) ? value.exitCode : null;
+  return { status: result.isError || (exitCode !== null && exitCode !== 0) ? 'fail' : exitCode === 0 ? 'pass' : 'unknown', exitCode };
+}
+
+export function parseProfile(text) {
+  if (typeof text !== 'string' || text.length > 16384) throw new Error('Profile must be at most 16 KiB.');
+  const value = JSON.parse(text);
+  if (value?.version !== 1 || !Array.isArray(value.checks) || value.checks.length > 8) throw new Error('Profile requires version 1 and at most 8 checks.');
+  const names = new Set();
+  for (const check of value.checks) {
+    if (!/^[a-z][a-z0-9-]{0,31}$/.test(check?.name) || names.has(check.name)) throw new Error('Check names must be unique lowercase identifiers.');
+    names.add(check.name);
+    if (!Array.isArray(check.argv) || !check.argv.length || check.argv.length > 32 || check.argv.some(s => typeof s !== 'string' || s.length > 1000 || /[\r\n\0]/.test(s)) || !check.argv[0]) throw new Error('Checks require a bounded argv array; no shell interpolation.');
+    if (check.timeoutMs !== undefined && (!Number.isInteger(check.timeoutMs) || check.timeoutMs < 100 || check.timeoutMs > 600000)) throw new Error('timeoutMs must be 100-600000.');
+    const command = check.argv.join(' ');
+    if (riskyCommand(command) || redact(command) !== command || check.argv.some(secretPath)) throw new Error('Check refused: recognizable destructive command or secret argument.');
+  }
+  return value.checks.map(c => ({ name: c.name, argv: c.argv, timeoutMs: c.timeoutMs ?? 30000 }));
 }

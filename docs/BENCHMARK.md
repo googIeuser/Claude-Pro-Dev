@@ -4,6 +4,8 @@
 
 Measure feature correctness, live usability and task efficiency separately. A cheaper wrong answer is a failed task. Subscription savings have not yet been measured.
 
+v0.2 includes [live-smoke.ps1](../scripts/live-smoke.ps1) and an executable [one-task pilot](../scripts/benchmark.ps1). It uses Sonnet/low effort, two model sessions per repeat, per-process plugin overrides, initialization preflight, a shared stream collector and six independent acceptance cases. Run `benchmark.ps1 -RunLive` only when you intend to use your Claude account. [Actual pilot evidence](PILOT.md) includes excluded calibration runs and higher API estimates in B. The broader three-task protocol below remains a separate experiment.
+
 Native tests should cover stable Core context, known risky command rejection before execution, synthetic secret masking, log evidence/exit metadata, queue drafting without submission, measured usage/cache fields and render-tree coexistence. Also test benign commands and important log lines without error keywords. Do not execute destructive commands.
 
 For live usability use a logged-in terminal/Desktop Code session: narrow/wide windows, resizing, other mods, typing during work, queue add/list/draft/remove, agent start/finish and next steps. Native render tests are not screen tests. Mermaid export is text.

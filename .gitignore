@@ -16,3 +16,5 @@ Thumbs.db
 *.p12
 *.pfx
 *.key
+/plugins/prodev/.claude-plugin/types/
+/plugins/prodev/tsconfig.json

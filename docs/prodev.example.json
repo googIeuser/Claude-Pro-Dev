@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "name": "unit",
+      "argv": ["powershell.exe", "-NoProfile", "-File", "./tests.ps1"],
+      "timeoutMs": 30000
+    }
+  ]
+}

@@ -1,12 +1,12 @@
-# Claude Pro Dev v0.1 benchmark protokolü
+# Claude Pro Dev benchmark protokolü
 
 Amaç: özelliklerin doğruluğunu, gerçek görevlerde verimliliği ve canlı UI deneyimini ayrı ölçmek. Daha kısa yanıt veya daha az araç çağrısı, iş eksik ya da yanlışsa başarı değildir.
 
-Bu belge bir protokoldür. Yanındaki CSV boş ölçüm şablonudur; gerçek model koşuları veya abonelik tasarrufu sonuçları içermez.
+Bu belge geniş ölçüm protokolüdür. Yanındaki CSV boş şablondur. v0.2'de ayrıca [çalıştırılabilir tek görevli pilot](../scripts/benchmark.ps1), [canlı smoke testi](../scripts/live-smoke.ps1) ve [gerçek pilot sonuçları](PILOT.md) bulunur. `-RunLive` her tekrar için hesabınızda iki model oturumu açar. Sonnet/low, süreç bazında izolasyon, ortak collector ve bağımsız altı kabul koşulu kullanılır. Abonelik tasarrufu kanıtlanmış değil.
 
 ## 1. Bugünkü kanıt
 
-4 Ekim 2026'da Claude Code **2.1.289** üzerinde kaynak paketin native Mods testleri yeniden çalıştırıldı: **31 geçti, 0 başarısız**. Bu testler gerçek plugin olay zincirini yükler; dış araç yürütme ve ölçüm cevaplarını test altyapısı sağlar. Gerçek hesap kotası, gerçek penceredeki etkileşim ve üretim işindeki tasarruf bu sonuçtan çıkarılamaz. 2.1.287 ayrıca denenmedi.
+4 Ekim 2026'da Claude Code **2.1.289** üzerinde v0.2 native Mods testleri: **48 geçti, 0 başarısız**. Native engine dış cevapları kontrollüdür. Ayrıca gerçek CLI'de 16 helper sonucu, exit 0/7 süreçleri ve CMD terminalinde HUD/queue draft sınandı. Dört final model koşusu bağımsız kabulü geçti; araç sayısı aynı, maliyet tahmini B'de biraz daha yüksek. Gerçek hesap kotası ve üretim tasarrufu bu sonuçtan çıkarılamaz. v0.1'in [2.1.287/2.1.289 ve iki PowerShell CI koşusu](https://github.com/googIeuser/Claude-Pro-Dev/actions/runs/37221899516) geçti; güncel v0.2 sonuçları Actions'ta izlenir.
 
 Tekrar çalıştırma, paket klasöründe:
 

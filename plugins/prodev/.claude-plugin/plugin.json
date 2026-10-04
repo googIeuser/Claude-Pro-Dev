@@ -1,6 +1,6 @@
 {
   "name": "prodev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Token-efficient engineering core and native Claude Code Mods helpers. Requires Claude Code 2.1.287+.",
   "author": { "name": "Musa" },
   "license": "MIT"

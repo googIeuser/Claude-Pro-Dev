@@ -1,6 +1,8 @@
 # Security
 
-Pro Dev v0.1 provides best-effort guards/redaction, not a sandbox or complete secret-protection system. Keep normal project security controls and Claude permission checks.
+Pro Dev v0.2 provides best-effort guards/redaction, not a sandbox or complete secret-protection system. Keep normal project security controls and Claude permission checks.
+
+`/prodev-checks run <name>` explicitly runs a program from the reviewed `.prodev.json` as your user through the Mods process API. This is separate from model tool-call approval; project scripts are executable code and can perform arbitrary work. No profile is run automatically. Regex checks do not make an untrusted script safe.
 
 Coverage limits include aliases/encoding, symlinks, user prompts, tool inputs, old transcripts, other plugins and tool-written logs. A hook failure after tool execution can preserve the original result. `/prodev-guard off` affects destructive-command heuristics; secret checks remain active.
 

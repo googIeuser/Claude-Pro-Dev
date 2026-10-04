@@ -133,7 +133,9 @@ test('helpers register as immediate commands while Claude is working', async ($,
   await start($, on, ($, e) => { expect(e.immediate).toBe(true); names.push(e.name); return { value: null }; });
   expect(names).toContain('prodev-queue');
   expect(names).toContain('prodev-next');
-  expect(names.length).toBe(6);
+  expect(names).toContain('prodev-doctor');
+  expect(names).toContain('prodev-checks');
+  expect(names).toContain('prodev-report');
 });
 test('turn usage is counted only once', async ($, on) => {
   await start($, on);

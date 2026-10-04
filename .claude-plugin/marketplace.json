@@ -6,7 +6,7 @@
     {
       "name": "prodev",
       "source": "./plugins/prodev",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Lean engineering rules, usage HUD, queue helpers and local guards."
     }
   ]
