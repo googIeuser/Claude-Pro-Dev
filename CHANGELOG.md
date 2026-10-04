@@ -9,6 +9,7 @@
 - Explicitly update an old cache when upgrading an existing user-scope plugin ID; regression test covers v0.1 to v0.2.
 - Live CLI smoke and a reproducible A/B pilot with independent acceptance, plugin isolation and a shared metrics collector.
 - Exclude generated host/MCP declarations from release archives. No measured subscription savings claimed.
+- Negative doctor tests explicitly return suite success to CI after asserting the expected failing child exit status.
 
 ## 0.1.0 — 2026-10-04
 

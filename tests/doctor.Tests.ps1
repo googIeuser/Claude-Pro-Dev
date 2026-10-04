@@ -21,3 +21,6 @@ $raw = & $shellExe -NoProfile -ExecutionPolicy Bypass -File $doctor -ClaudeConfi
 $report = ($raw -join "`n") | ConvertFrom-Json
 Assert (@($report.checks | Where-Object { $_.name -eq 'settings' -and $_.status -eq 'fail' }).Count -eq 1) 'malformed settings are diagnosed without printing their contents'
 Write-Host 'Doctor negative checks passed.'
+# The final child doctor intentionally returns 1. Report the successful suite
+# itself as 0 so callers (including GitHub's shell wrapper) do not inherit it.
+exit 0
