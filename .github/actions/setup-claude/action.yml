@@ -1,0 +1,22 @@
+name: Set up native Claude Code
+description: Install a pinned binary for account-free plugin tests
+inputs:
+  version:
+    description: Exact Claude Code version
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install pinned Claude Code
+      shell: pwsh
+      env:
+        CLAUDE_TEST_VERSION: ${{ inputs.version }}
+        DISABLE_AUTOUPDATER: '1'
+      run: |
+        $ErrorActionPreference = 'Stop'
+        if ($env:CLAUDE_TEST_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw 'An exact version is required.' }
+        # https://code.claude.com/docs/en/setup#install-a-specific-version
+        $installer = Invoke-RestMethod -Uri 'https://claude.ai/install.ps1'
+        & ([scriptblock]::Create($installer)) $env:CLAUDE_TEST_VERSION
+        if ($LASTEXITCODE -ne 0) { throw 'Claude installation failed.' }
+        Join-Path $env:USERPROFILE '.local\bin' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append

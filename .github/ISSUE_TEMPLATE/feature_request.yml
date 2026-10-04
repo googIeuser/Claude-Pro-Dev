@@ -1,0 +1,15 @@
+name: Feature request
+description: Suggest a focused improvement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and proposed behavior
+      description: Describe the user task and the improvement
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: How to measure success
+      description: Expected model/tool overhead and a practical correctness check

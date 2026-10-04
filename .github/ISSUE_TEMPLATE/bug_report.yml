@@ -1,0 +1,25 @@
+name: Bug report
+description: Report a reproducible installation or plugin problem
+body:
+  - type: markdown
+    attributes:
+      value: Use synthetic examples. Remove secrets, account data and personal paths. For vulnerabilities see SECURITY.md.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Claude Code, PowerShell and Pro Dev versions
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Smallest steps, expected behavior and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Relevant error excerpt and test results; note other active mods

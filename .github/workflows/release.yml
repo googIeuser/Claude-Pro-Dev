@@ -1,0 +1,39 @@
+name: Release
+'on':
+  push:
+    tags: ['v[0-9]*']
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: verify
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate tag and build release
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = Get-Content -LiteralPath .\plugins\prodev\.claude-plugin\plugin.json -Raw | ConvertFrom-Json
+          if ($env:GITHUB_REF_NAME -ne ('v' + $manifest.version)) { throw 'Tag does not match plugin version.' }
+          if (-not (Test-Path -LiteralPath ('.\docs\releases\' + $env:GITHUB_REF_NAME + '.md'))) { throw 'Release notes are missing.' }
+          & .\scripts\build-release.ps1
+      - name: Publish checked assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:GITHUB_REF_NAME
+          $zip = '.\dist\claude-pro-dev-' + $tag + '.zip'
+          $notes = '.\docs\releases\' + $tag + '.md'
+          gh release create $tag '.\dist\install.ps1' $zip '.\dist\SHA256SUMS.txt' --verify-tag --title "Claude Pro Dev $tag" --notes-file $notes
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed.' }

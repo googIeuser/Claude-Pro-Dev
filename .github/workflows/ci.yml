@@ -1,0 +1,62 @@
+name: CI
+'on':
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+        claude: ['2.1.287', '2.1.289']
+    env:
+      DISABLE_AUTOUPDATER: '1'
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-claude
+        with:
+          version: ${{ matrix.claude }}
+      - name: Isolate Claude test configuration
+        shell: pwsh
+        run: |
+          'CLAUDE_CONFIG_DIR=' + (Join-Path $env:RUNNER_TEMP 'claude-prodev-ci') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Check pinned binary and manifests
+        env:
+          EXPECTED_CLAUDE_VERSION: ${{ matrix.claude }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = claude --version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch ('^' + [regex]::Escape($env:EXPECTED_CLAUDE_VERSION) + '\b')) { throw "Unexpected Claude version: $version" }
+          claude plugin validate . --strict
+          if ($LASTEXITCODE -ne 0) { throw 'Marketplace validation failed.' }
+          claude plugin validate .\plugins\prodev --strict
+          if ($LASTEXITCODE -ne 0) { throw 'Plugin validation failed.' }
+      - name: Native Mods tests
+        run: |
+          claude plugin test .\plugins\prodev
+          if ($LASTEXITCODE -ne 0) { throw 'Native Mods tests failed.' }
+      - name: Release packaging and reproducibility
+        run: |
+          & .\scripts\build-release.ps1
+          & .\tests\release.Tests.ps1 -TestRoot (Join-Path $env:RUNNER_TEMP 'release-tests')
+      - name: Isolated installation and rollback
+        run: |
+          & .\tests\install.Tests.ps1 -TestRoot (Join-Path $env:RUNNER_TEMP 'install-tests')
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: prodev-${{ matrix.claude }}-${{ matrix.shell }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,13 @@
+{
+  "name": "claude-pro-dev-local",
+  "owner": { "name": "Musa" },
+  "metadata": { "description": "Local marketplace for the Claude Pro Dev engineering and Mods starter package." },
+  "plugins": [
+    {
+      "name": "prodev",
+      "source": "./plugins/prodev",
+      "version": "0.1.0",
+      "description": "Lean engineering rules, usage HUD, queue helpers and local guards."
+    }
+  ]
+}

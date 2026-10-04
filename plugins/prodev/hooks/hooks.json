@@ -1,0 +1,4 @@
+{
+  "description": "Claude Pro Dev native Mods module",
+  "modules": ["./register.js"]
+}
