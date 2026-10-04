@@ -43,25 +43,46 @@ Yeni bir oturum açın; açık oturumda `/reload-plugins` çalıştırın. Yeni 
 
 v0.1'den yükseltmek için aynı kurucuyu tekrar çalıştırın; eski cache sürümü gerektiğinde resmi CLI ile güncellenir. Checklist skill'i `/prodev:engineering` olarak adlandırıldı; önceki `/prodev` durum komutuyla çakışma giderildi.
 
-| Komut | Davranış |
-|---|---|
-| `/prodev` | Gerçek limit okumaları, cache oranı ve yerel sayaçlar |
-| `/prodev-doctor` | Gözlenen hook'lar, eksik okumalar ve komut kayıt çakışmaları |
-| `/prodev-checks` | PASS / FAIL / UNKNOWN ve eski kayıt durumunu gösterir |
-| `/prodev-checks profile` / `run unit` | İncelenmiş proje kontrollerini listeler / seçileni çalıştırır |
-| `/prodev-report` | Prompt, komut argümanı ve tool çıktısı içermeyen oturum JSON özeti |
-| `/prodev-queue add Test hatasını incele` | İş sürerken de yapılacakları bellekte sıraya ekler |
-| `/prodev-queue list` | Kuyruğu gösterir |
-| `/prodev-queue draft 1` | #1'i giriş kutusuna koyar; göndermek için Enter'a basın |
-| `/prodev-queue remove 1` / `clear` | Kuyruktan siler / tümünü temizler |
-| `/prodev-flow` | Gözlenen agent ağacı ve durumları |
-| `/prodev-flow mermaid` | Aynı ağacı Mermaid metni olarak verir |
-| `/prodev-next` | Ek model çağrısı yapmadan 2–3 sonraki adım önerir |
-| `/prodev-filter off` / `on` | Uzun log kısaltmayı bu oturumda değiştirir |
-| `/prodev-guard off` / `on` | Yıkıcı komut kontrolünü bu oturumda değiştirir |
-| `/prodev:engineering` | İstenirse modeli kullanan kısa mühendislik checklist skill'i |
+## Komutlar nasıl kullanılır?
 
-Helper komutları doğrudan Mods kodunu çalıştırır. `/prodev:engineering` skill'i ve kuyruğa alınmış bir işi Enter ile gönderme normal Claude kullanımı tüketir. Queue otomatik çalışmaz; `draft` mevcut giriş metninin yerine geçer ve öğeyi kuyrukta tutar. Kuyruk, agent geçmişi ve sayaçlar plugin yeniden yüklenince veya süreç kapanınca sıfırlanır; diske yazılmaz.
+Bu komutları tek tek **Claude Code'un giriş kutusuna** yazın. PowerShell komutu değildir.
+
+| Komut | Ne işe yarar? | Ne zaman kullanılır? |
+|---|---|---|
+| `/prodev` | Claude'un son sağladığı 5 saatlik/haftalık kullanımı, gözlenen cache/context verilerini ve etkinlik sayaçlarını gösterir. | İşe başlamadan veya iş bittikten sonra kullanımı kontrol etmek için. |
+| `/prodev-doctor` | Hangi hook'ların gözlendiğini, kaç helper kaydolduğunu, komut çakışmalarını ve guard/filter ayarlarını gösterir. | Kurulum sonrası yüklenmeyi veya eksik ölçümleri incelemek için. Bir olayın henüz gözlenmemesi hook'un bozuk olduğu anlamına gelmez. |
+| `/prodev-checks` | Gözlenen kontrol sonuçlarını PASS / FAIL / UNKNOWN olarak listeler; eski sonuçları belirtir. | Değişiklikten sonra hangi doğrulamanın gerçekten çalıştığını görmek için. |
+| `/prodev-checks profile` | Çalışma klasöründeki `.prodev.json` kontrollerini okur ve listeler; hiçbirini çalıştırmaz. | Kullanılabilir kontrolleri ve program argümanlarını incelemek için. |
+| `/prodev-checks run <name>` | Yapılandırılmış bir kontrolü açıkça çalıştırır ve çıkış kodunu kaydeder. Örnek: `/prodev-checks run unit`. | Profil ve script'i inceledikten sonra bir kontrol çalıştırmak için. [Proje kontrolleri](#proje-kontrolleri-ve-güvenilir-kayıt) bölümüne bakın. |
+| `/prodev-report` | Sayaçları, tamamlanmış turların token verilerini ve kontrol kayıtlarını JSON olarak gösterir; prompt, komut argümanı ve tool çıktısı içermez. | Oturumu ayrıntılı incelemek veya karşılaştırma için ölçümleri kopyalamak için. Plugin rapor dosyası kaydetmez. |
+| `/prodev-queue` | Bekleyen işleri listeler; `/prodev-queue list` ile aynıdır. | Claude çalışırken sonraki işleri el altında tutmak için. Alt komutlar aşağıda. |
+| `/prodev-flow` | Bu oturumda gözlenen agent'ların ilişkilerini ve durumlarını gösterir. | Agent etkinliğini incelemek için. Yeni agent başlatmaz. |
+| `/prodev-flow mermaid` | Aynı agent ağacını Mermaid metni olarak verir. | Grafiği bir Markdown belgesine veya Mermaid görüntüleyicisine kopyalamak için. |
+| `/prodev-next` | Yerel etkinliğe, başarısız kontrollere ve kuyruğa göre 2–3 sonraki adım önerir. | İş bittikten sonra kısa bir takip listesi almak için; model isteği göndermez. |
+| `/prodev-filter on` / `/prodev-filter off` | Bu oturumda uzun shell ve MCP metinlerini kısaltmayı açar/kapatır; varsayılan açıktır. | Uzun bir sonuçta atlanan ayrıntıları incelemek için kapatılabilir. Secret redaction devam eder. |
+| `/prodev-guard on` / `/prodev-guard off` | Bu oturumda tanınan yıkıcı komutları kontrol etmeyi açar/kapatır; varsayılan açıktır. | Bilerek izin verdiğiniz bir işlem için geçici kapatıp ardından tekrar açmak için. Secret kontrolleri ve modelin normal tool izinleri devam eder. |
+| `/prodev:engineering` | Claude modelini kullanarak isteğe bağlı kısa mühendislik checklist skill'ini çalıştırır. | Odaklı mühendislik rehberliğini açıkça istemek için. Normal Claude kullanımı tüketir. |
+
+### Kuyruk komutları
+
+| Komut | Ne işe yarar? |
+|---|---|
+| `/prodev-queue add Parser testlerini incele` | İşi ekler ve örneğin `#1` numarasını verir. Otomatik çalıştırma yoktur. |
+| `/prodev-queue list` | İşlerin numaralarını ve metinlerini gösterir. |
+| `/prodev-queue draft 1` | Giriş kutusundaki mevcut metnin yerine #1'i koyar. İnceleyip Enter ile gönderin. İş kuyrukta kalır. |
+| `/prodev-queue remove 1` | #1'i çalıştırmadan kuyruktan siler. |
+| `/prodev-queue clear` | Bekleyen bütün işleri çalıştırmadan siler. |
+
+Kuyruk en fazla 20 iş tutar; her iş en fazla 4.000 karakter olabilir. `draft` için düzenlenebilir giriş kutusu gerekir; headless modda bunun bulunmadığı belirtilir. Helper komutları doğrudan Mods kodunu çalıştırır ve model isteği göndermez. `/prodev:engineering` skill'i ve kuyruğa alınmış bir işi Enter ile gönderme normal Claude kullanımı tüketir. Kuyruk, agent geçmişi ve sayaçlar plugin yeniden yüklenince veya süreç kapanınca sıfırlanır; kalıcı tutulmaz.
+
+### Durum çıktısı ne anlama geliyor?
+
+- `5h: 3% used`, Claude'un 5 saatlik limitinin %3'ünün; `7d: 20% used`, haftalık limitinin %20'sinin kullanıldığını söyler. Bunlar hesap kullanım verileridir; Pro Dev'in sağladığı tasarruf yüzdesi değildir.
+- `cache`, gözlenen tamamlanmış turlardaki cache okuma payıdır. `context`, Claude'un sağladığı bağlam kullanım yüzdesidir. `unknown`, ilgili ölçümün bulunmadığını belirtir; yüzde tahmin edilmez.
+- `tools` gözlenen araç denemelerini, `repeat reads` tekrarlanan Read/Grep/Glob isteklerini, `agents` gözlenen ve hâlâ çalışan agent'ları sayar. `queue` bekleyen işleri, `filtered` kısaltılan sonuçları, `blocked` engellemeleri sayar. Yeni oturumda sıfır olmaları normaldir.
+- `observed input`, `cache read`, `cache write` ve `output`, pluginin gözlediği tamamlanmış turlarda bildirilen token toplamlarıdır. `checks: 0 current pass`, mevcut gözlenen revision için çıkış kodu sıfır olan bir kontrol kaydı bulunmadığını söyler. UNKNOWN ve eski kayıtlar güncel başarı sayılmaz.
+
+İlk oturumda `/prodev-doctor`, ardından `/prodev` çalıştırın. Normal bir kod görevini tamamladıktan sonra `/prodev-checks`, `/prodev-report` ve `/prodev-next` ile doğrulamayı, etkinliği ve olası sonraki işleri inceleyin. Yapılandırılmış kontroller için incelenmiş bir `.prodev.json` ve açıkça seçilen `/prodev-checks run <name>` gerekir.
 
 ## Neler hazır?
 

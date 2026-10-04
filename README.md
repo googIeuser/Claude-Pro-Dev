@@ -47,24 +47,44 @@ Run the same installer to upgrade v0.1. An existing plugin cache with an older v
 
 ## Commands
 
-| Command | Behavior |
-|---|---|
-| `/prodev` | Observed quota/cache readings and counters |
-| `/prodev-doctor` | Observed hooks, unavailable readings and helper registration conflicts |
-| `/prodev-checks` | Receipts with PASS / FAIL / UNKNOWN and conservative stale status |
-| `/prodev-checks profile` or `run unit` | List trusted project checks / explicitly run one |
-| `/prodev-report` | Session metrics JSON without prompts, command arguments or tool bodies |
-| `/prodev-queue add Investigate failing test` | Add an in-memory task while Claude works |
-| `/prodev-queue list` | List pending tasks |
-| `/prodev-queue draft 1` | Replace the prompt with task #1; press Enter to submit |
-| `/prodev-queue remove 1` or `clear` | Remove a task or clear the queue |
-| `/prodev-flow [mermaid]` | Observed agent relationships/states; optional Mermaid text |
-| `/prodev-next` | Local next-step suggestions without a model request |
-| `/prodev-filter on` or `off` | Toggle long-output filtering for this session |
-| `/prodev-guard on` or `off` | Toggle destructive-command heuristics for this session |
-| `/prodev:engineering` | Optional engineering checklist skill; this uses the model |
+Type these commands into **Claude Code's prompt**, one at a time. They are not PowerShell commands.
 
-Helpers run local Mods code. Sending a drafted task uses Claude normally. Drafting replaces existing prompt text and retains the queue item. Queue/history/counters reset on reload or exit; no persistence.
+| Command | What it does | When to use it |
+|---|---|---|
+| `/prodev` | Shows the host's latest 5-hour/weekly usage, observed cache/context readings and activity counters. | Check usage before or after a task. |
+| `/prodev-doctor` | Shows which hooks have been observed, how many helpers registered, command conflicts and guard/filter settings. | Check loading after installation or investigate missing readings. An unobserved event does not mean a broken hook. |
+| `/prodev-checks` | Lists observed check results as PASS / FAIL / UNKNOWN and indicates stale results. | Review what verification actually ran after a change. |
+| `/prodev-checks profile` | Reads and lists checks from the working directory's `.prodev.json`; runs nothing. | Review available checks and their program arguments. |
+| `/prodev-checks run <name>` | Explicitly runs one configured check and records its exit code. For example: `/prodev-checks run unit`. | Run a check after reviewing its profile and script. See [project checks](#verification-receipts-and-project-checks). |
+| `/prodev-report` | Prints session metrics JSON, including counters, completed-turn tokens and check receipts; omits prompts, command arguments and tool bodies. | Inspect a session in detail or copy its metrics for comparison. The plugin does not save a report file. |
+| `/prodev-queue` | Lists pending tasks; same as `/prodev-queue list`. | Keep follow-up work handy while Claude works. See the queue commands below. |
+| `/prodev-flow` | Shows the relationships and states of agents observed in this session. | Inspect agent activity. It does not start any agents. |
+| `/prodev-flow mermaid` | Outputs the same agent graph as Mermaid text. | Copy the graph into a Markdown document or Mermaid viewer. |
+| `/prodev-next` | Suggests 2–3 next steps based on local activity, failed checks and the queue. | Get a short follow-up checklist after a task; no model request. |
+| `/prodev-filter on` / `/prodev-filter off` | Enables/disables long shell and MCP text filtering for this session; defaults to on. | Turn it off when investigating evidence omitted from a long result. Secret redaction stays active. |
+| `/prodev-guard on` / `/prodev-guard off` | Enables/disables recognizable destructive-command checks for this session; defaults to on. | Temporarily allow an intentionally authorized operation, then turn it back on. Secret checks and normal model tool permissions remain active. |
+| `/prodev:engineering` | Invokes the optional engineering checklist skill using Claude's model. | Explicitly ask for focused engineering guidance. This consumes normal Claude usage. |
+
+### Queue commands
+
+| Command | What it does |
+|---|---|
+| `/prodev-queue add Review the parser tests` | Adds a task and returns its ID, for example `#1`. Nothing starts automatically. |
+| `/prodev-queue list` | Lists task IDs and text. |
+| `/prodev-queue draft 1` | Replaces the current prompt text with task #1. Review it and press Enter to send. The queue item remains. |
+| `/prodev-queue remove 1` | Removes task #1 without running it. |
+| `/prodev-queue clear` | Removes all pending tasks without running them. |
+
+The queue holds up to 20 tasks, each at most 4,000 characters. Drafting requires an editable prompt; headless mode reports that none is available. Helpers run local Mods code without model requests. Sending a drafted task and invoking `/prodev:engineering` use Claude normally. Queue/history/counters reset on plugin reload or exit; no persistence.
+
+### Reading the status
+
+- `5h: 3% used` means 3% of the host's 5-hour allowance is consumed; `7d: 20% used` means 20% of the weekly allowance is consumed. These are account usage readings, not savings attributed to Pro Dev.
+- `cache` is the observed cache-read share across completed turns. `context` is the host's context-use percentage. `unknown` means the relevant measurement is unavailable; no percentage is guessed.
+- `tools` counts observed tool attempts, `repeat reads` counts repeated Read/Grep/Glob requests, and `agents` counts observed agents still running. `queue`, `filtered` and `blocked` count pending tasks, shortened results and refusals respectively. Zeros in a fresh session are normal.
+- `observed input`, `cache read`, `cache write` and `output` are token totals reported by completed turns observed by this plugin. `checks: 0 current pass` means no exit-zero receipt belongs to the current observed revision. UNKNOWN and stale receipts are not current passes.
+
+For a first session, run `/prodev-doctor`, then `/prodev`. Complete a normal coding task, then use `/prodev-checks`, `/prodev-report` and `/prodev-next` to review verification, activity and possible follow-up work. Configured checks require a reviewed `.prodev.json` and an explicit `/prodev-checks run <name>`.
 
 ## Features and limits
 
