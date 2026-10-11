@@ -43,6 +43,8 @@ An enabled user-scope `prodev` from another marketplace is disabled to prevent c
 
 Open a new Claude session and check `/plugin`, then `/prodev` in a trusted folder. Existing sessions can use `/reload-plugins`; new Core context requires a new session or `/clear`.
 
+The PowerShell installer disables automatic context compaction (`autoCompactEnabled: false`) and removes any custom `autoCompactWindow` threshold, including the previous 120,000-token setting. Restart Claude Code after installation and run `/compact` manually when needed. Existing settings are backed up and restored if installation fails. This applies to the Claude user configuration used by the installer, across projects; installing only through the plugin marketplace does not change these settings.
+
 Run the same installer to upgrade v0.1. An existing plugin cache with an older version is explicitly updated. The checklist skill is now `/prodev:engineering`, avoiding the earlier collision with the local `/prodev` status command.
 
 ## Commands

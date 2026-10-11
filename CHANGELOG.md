@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- PowerShell installation disables automatic context compaction and removes custom compaction thresholds; use `/compact` manually. Settings remain covered by installation backup and rollback.
+
 ## 0.2.0 — 2026-10-04
 
 - Live hook doctor, external read-only installation doctor and registration-conflict isolation.

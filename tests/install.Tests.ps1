@@ -12,7 +12,7 @@ $installer = Join-Path $package 'install.ps1'
 Assert (Test-Path -LiteralPath $installer) 'one-command installer exists'
 $utf8 = New-Object Text.UTF8Encoding($false)
 $settingsPath = Join-Path $config 'settings.json'
-$original = '{"model":"sonnet","permissions":{"deny":["Bash(whoami)"]},"enabledPlugins":{"keep@demo":false}}'
+$original = '{"model":"sonnet","autoCompactWindow":120000,"autoCompactEnabled":true,"permissions":{"deny":["Bash(whoami)"]},"enabledPlugins":{"keep@demo":false}}'
 [IO.File]::WriteAllText($settingsPath, $original, $utf8)
 # Exercise a populated configuration, including an older prodev from another
 # marketplace. Windows PowerShell 5.1 returns JSON arrays as one pipeline item.
@@ -39,6 +39,8 @@ try {
 & $installer -SourcePath $package -ClaudeConfigDir $config
 Assert (Test-Path -LiteralPath (Join-Path $config 'prodev\package\plugins\prodev\hooks\register.js')) 'installed files survive moving original source'
 $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+Assert ($settings.autoCompactEnabled -eq $false) 'automatic compaction is disabled'
+Assert ($null -eq $settings.PSObject.Properties['autoCompactWindow']) 'custom 120k compaction threshold is removed'
 Assert ($settings.model -eq 'sonnet') 'existing model is preserved'
 Assert ($settings.permissions.deny[0] -eq 'Bash(whoami)') 'existing permission rules are preserved'
 Assert ($settings.enabledPlugins.'keep@demo' -eq $false) 'unrelated plugin setting is preserved'
@@ -87,6 +89,9 @@ $previousEnv = $env:CLAUDE_CONFIG_DIR
 $embeddedConfig = Join-Path $TestRoot 'embedded-config'
 & ([scriptblock]::Create([IO.File]::ReadAllText($installer))) -ClaudeConfigDir $embeddedConfig -UseEmbedded
 Assert (Test-Path -LiteralPath (Join-Path $embeddedConfig 'prodev\package\plugins\prodev\hooks\register.js')) 'standalone pipeline script installs its embedded payload'
+$embeddedSettings = Get-Content -LiteralPath (Join-Path $embeddedConfig 'settings.json') -Raw | ConvertFrom-Json
+Assert ($embeddedSettings.autoCompactEnabled -eq $false) 'fresh embedded installation uses manual compaction'
+Assert ($null -eq $embeddedSettings.PSObject.Properties['autoCompactWindow']) 'fresh installation has no custom compaction threshold'
 Assert ($env:CLAUDE_CONFIG_DIR -eq $previousEnv) 'installer restores the parent process environment'
 # Force a failure AFTER the CLI has modified installation metadata.
 $badSource = Join-Path $TestRoot 'rollback-source'

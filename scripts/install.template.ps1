@@ -150,9 +150,16 @@ try {
     if ($targetPlugin[0].enabled -ne $true) {
         Invoke-Claude -Arguments @('plugin', 'enable', 'prodev@claude-pro-dev-local', '--scope', 'user', '--json') | Out-Null
     }
+    # Apply manual compaction after CLI mutations, within the rollback boundary.
+    $settingsPath = Join-Path $ClaudeConfigDir 'settings.json'
+    $settings = Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $settings.PSObject.Properties.Remove('autoCompactWindow')
+    $settings | Add-Member -MemberType NoteProperty -Name autoCompactEnabled -Value $false -Force
+    [IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
     & (Join-Path $target 'scripts\verify.ps1') -ClaudeConfigDir $ClaudeConfigDir
     Write-Host "Claude Pro Dev 0.2.0 installed. Package: $target"
     Write-Host "Backups: $backup"
+    Write-Host 'Automatic context compaction is disabled. Run /compact manually when needed; restart Claude Code to apply.'
     foreach ($disabledPlugin in $disabledPlugins) { Write-Host "Disabled overlapping plugin (files retained): $disabledPlugin" }
     Write-Host 'Start Claude Code, or run /reload-plugins. Check /plugin, /prodev-doctor and /prodev.'
 } catch {

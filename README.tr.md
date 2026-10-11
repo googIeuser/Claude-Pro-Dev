@@ -37,6 +37,8 @@ Kurucu Claude sürümünü kontrol eder, mevcut JSON ayarlarını doğrular, aya
 
 ## Claude içinde kullanın
 
+PowerShell kurucusu otomatik context sıkıştırmasını kapatır (`autoCompactEnabled: false`) ve önceki 120.000 token eşiği dahil özel `autoCompactWindow` ayarını kaldırır. Kurulumdan sonra Claude Code'u yeniden başlatın; gerektiğinde `/compact` komutunu manuel çalıştırın. Bu değişiklik kurucunun kullandığı Claude kullanıcı ayarlarına uygulanır ve projeler arasında geçerlidir. Yalnız marketplace üzerinden plugin kurmak bu ayarları değiştirmez. Kurulum başarısız olursa önceki ayarlar yedekten geri yüklenir.
+
 Başka bir marketplace'ten kullanıcı kapsamında kurulmuş ve etkin bir `prodev` varsa, `/prodev` komut çakışmasını önlemek için kurucu onu devre dışı bırakır ve yeni paketi etkinleştirir. Eski plugin dosyaları silinmez. `agent-flow`, `prodev-queue`, `prodev-mermaid` ve diğer pluginler etkinlik durumlarını korur. Kurulum hatayla biterse önceki `prodev` etkinliği de yedekten geri yüklenir.
 
 Yeni bir oturum açın; açık oturumda `/reload-plugins` çalıştırın. Yeni core kuralları için yeni oturum veya `/clear` kullanın. `/plugin` içinde `prodev` aktif görünmelidir. Güvenilir bir çalışma klasörü ve oturum açmış Claude hesabı gerekir.
