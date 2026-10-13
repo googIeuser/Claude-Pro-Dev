@@ -14,6 +14,7 @@ $events = @(
 )
 $lines = ($events | ForEach-Object { $_ | ConvertTo-Json -Depth 12 -Compress }) -join "`n"
 $metrics = Get-ClaudeMetrics -JsonLines $lines
+Assert ($null -eq $metrics.PSObject.Properties['apiCostUsd']) 'subscription metrics omit API billing estimates'
 Assert ($metrics.toolRequests -eq 4) 'duplicate tool IDs are counted once'
 Assert ($metrics.repeatedReads -eq 1) 'identical reads repeat until a write invalidates them'
 Assert ($metrics.toolErrors -eq 1) 'tool errors are distinct from final model success'

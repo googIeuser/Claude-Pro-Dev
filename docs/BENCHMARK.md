@@ -1,35 +1,25 @@
-# Benchmark protocol
+# Benchmark protocol — v0.3
 
-[Detailed Turkish protocol](BENCHMARK.tr.md) · [Blank results table](benchmark-results.template.csv)
+[Türkçe](BENCHMARK.tr.md)
 
-Measure feature correctness, live usability and task efficiency separately. A cheaper wrong answer is a failed task. Subscription savings have not yet been measured.
+Measure correctness, usability, and efficiency separately. A shorter wrong answer is a failure. No subscription savings are established. [Older pilot evidence](PILOT.md) concerns v0.2 only; new collectors omit billing estimates.
 
-v0.2 includes [live-smoke.ps1](../scripts/live-smoke.ps1) and an executable [one-task pilot](../scripts/benchmark.ps1). It uses Sonnet/low effort, two model sessions per repeat, per-process plugin overrides, initialization preflight, a shared stream collector and six independent acceptance cases. Run `benchmark.ps1 -RunLive` only when you intend to use your Claude account. [Actual pilot evidence](PILOT.md) includes excluded calibration runs and higher API estimates in B. The broader three-task protocol below remains a separate experiment.
+## Local checks
 
-Native tests should cover stable Core context, known risky command rejection before execution, synthetic secret masking, log evidence/exit metadata, queue drafting without submission, measured usage/cache fields and render-tree coexistence. Also test benign commands and important log lines without error keywords. Do not execute destructive commands.
+Run native tests, isolated installer/release suites, and `scripts/live-smoke.ps1`. Cover stable Core, command text reaching host permissions, synthetic output redaction, bounded logs, queue draft without submission, unknown usage, and numeric/stale verification receipts. Use controlled tool events for destructive-looking strings; never execute them as real commands for a test.
 
-For live usability use a logged-in terminal/Desktop Code session: narrow/wide windows, resizing, other mods, typing during work, queue add/list/draft/remove, agent start/finish and next steps. Native render tests are not screen tests. Mermaid export is text.
+## Advisor scenario (signed-in session)
 
-## A/B pilot
+Use an isolated repository with a known bug and independent acceptance cases. Run `/prodev:advisor <task>`. Check that Sonnet is selected when available, the read-only Opus advisor receives relevant context for a complex task, the executor implements the result, and checks actually pass. Try a trivial task to check that unnecessary consultation is skipped. Record unavailable-model fallbacks honestly. Verify that the next ordinary prompt resumes the session model. Record actual model identities and consultations, not just the skill's intended behavior.
 
-Three tasks: a reproducible bug, diagnosis from a long log, a small parser/CLI feature. Define independent acceptance checks before either condition; the model's own tests must not be the sole judge.
+## Team scenario (interactive only)
 
-A: new Pro Dev disabled. B: enabled. Older overlapping prodev stays disabled in both. Other plugins, starting files, instructions, model, effort, fast mode and permissions are identical. Filter off alone is not the A condition.
+Enable the experimental flag and restart. Use `/prodev:team <task>` on two independent modules. Confirm native named teammates, separate file ownership, messages, task dependencies where supported, completion, combined verification, and shutdown. Check disabled-flag and headless fallbacks. Ordinary subagents do not prove a native team formed. Resize the terminal, type while work runs, and check other mods still render.
 
-Three repeats per task/condition = 18 task runs, potentially many API requests. Use fresh sessions and separate identical file copies. Alternate A-first/B-first order. Verify collection with one pair before doing the whole pilot. Keep failures, timeouts and manual interventions in the report.
+## Controlled comparison
 
-A fresh session does not guarantee cold server cache. Record observed cache behavior and separate first/continuation turns; follow-ups must match.
+Use three tasks: a reproducible bug, long-log diagnosis, and a small feature. Define independent acceptance before model work. Compare baseline, advisor, and teams only where each fits. Use identical starting files, instructions, model/effort choices, permissions, and other plugins. For advisor/team arms, record every model used. Use fresh copies and alternate run order; three repeats per condition are exploratory, not general proof.
 
-## Measurement and decision
+Record completion, acceptance, wall time, separate input/output/cache-read/cache-write tokens, tool counts/errors, repeated reads under one common definition, agent consultations, and human interventions. Include main and agent usage without double-counting cumulative readings. Missing values stay unknown. The existing `scripts/benchmark.ps1 -RunLive` is a normal-plugin A/B fixture, not an advisor/team benchmark; it uses your account and must be selected explicitly.
 
-Use the same source for A and B; B's Pro Dev HUD cannot be the sole comparison instrument. Claude's [monitoring documentation](https://code.claude.com/docs/en/monitoring-usage) describes token/API/tool fields. A local console exporter/collector can collect both conditions. This document enables no telemetry or external export. Basic measurements do not require raw prompt/tool/API bodies.
-
-Record correctness, wall time, successful/error API events, separate input/output/cache-creation/cache-read tokens, executed/rejected tools, unchanged repeated reads using a shared definition, agents and human interventions. Include main/agent/auxiliary usage. Do not add repeated cumulative counter snapshots or double-count metrics and events.
-
-For fixed logs record before/after length and preserved evidence. Log compression is not whole-task savings. Pro Dev repeat-read counters observe, do not prevent reads, and clear after shell/writes; use one common definition for both conditions.
-
-Real 5h/7d readings are supporting evidence: reset, delayed readings and concurrent account use can distort a small difference. Context/cache percentages do not establish subscription savings.
-
-First require correct completion and preserved evidence. Show success rate, intervention counts, per-task medians and ranges. Suggested exploratory target, not an achieved result: about 15–20% less unnecessary tool/read work or improvement in separately reported token categories with quality maintained. Investigate slower runs or higher output/failures. Three repeats do not support broad claims.
-
-Report three separate conclusions: features behave correctly; live use works; efficiency improved/did not improve on these tasks. Missing measurements stay blank/unknown.
+5h/7d host readings can support comparisons, but resets, delayed readings, and concurrent account use distort small differences. Context/cache percentages do not prove allowance savings. Report per-task medians/ranges and failures. Keep feature correctness, live usability, and measured efficiency conclusions separate.

@@ -1,25 +1,31 @@
-# Architecture and scope
+# Architecture — v0.3
 
 [Türkçe](ARCHITECTURE.tr.md)
 
-The root marketplace exposes a single `prodev` plugin. `.claude-plugin/plugin.json` holds plugin metadata; `hooks/hooks.json` loads one native module, `register.js`. `policy.js` contains Core, guard, redaction and filtering policies. Native tests and isolated PowerShell installer/release tests ship with the source.
+The root marketplace exposes one `prodev` plugin. It contains a native Mods module, two reusable agent definitions, and user-invoked skills. There is no standalone model client, server, credential store, or network request code in the plugin.
 
-`session.start` reads host usage once and independently registers nine immediate helpers; individual command conflicts are caught and reported. `prompt.context` appends stable Core instructions without replacing project context or duplicating the named block. Usage/counters are not placed in the model prompt unless a user explicitly prints a report. `session.measure` updates observed quota/context data; `turn.complete` deduplicates per-agent/turn usage and duration. UI rendering preserves other mods' content. The optional checklist is now `skills/engineering/SKILL.md`, avoiding its former collision with `/prodev`.
+| Component | Role |
+| --- | --- |
+| `hooks/register.js` | Host events, eight immediate commands, usage HUD, queue, receipts, activity tracking |
+| `hooks/policy.js` | Stable engineering context, output redaction/filtering, structural check-profile validation |
+| `agents/advisor.md` | Opus; Read/Grep/Glob only; strategic guidance and review |
+| `agents/executor.md` | Sonnet; implementation within assigned scope |
+| `skills/advisor/SKILL.md` | Sonnet main-session turn, focused ordinary advisor consultations |
+| `skills/team/SKILL.md` | Native team coordination with named teammates and distinct file ownership |
+| `skills/engineering/SKILL.md` | Optional engineering checklist |
+| `scripts/install.template.ps1` | Transactional user-scope installer and optional teams setting |
+| `scripts/build-release.ps1` | Allowlisted ZIP and self-contained root installer |
 
-`tool.call` inspects recognizable destructive Bash/PowerShell commands and secret paths before `next(e)`. The engine retains its normal model-tool permission checks. Results then undergo recursive redaction and optional long-text filtering. When changed, engine `ref` and `text` are removed so raw content is not replayed. Errors receive the character budget first, then nearby stack/assertion context, then head/tail samples. Omitted ranges and clipped lines are marked. This is deterministic sampling; it cannot recover host-truncated text or guarantee all evidence. Read/Grep/Glob source text and MCP structured/image content are not shortened.
+`session.start` reads host usage once and independently registers local helpers. Command conflicts are reported without stopping remaining registrations. `prompt.context` appends a stable Core block once and preserves project instructions. `session.measure` records host quota/context readings. `turn.complete` deduplicates agent/turn tokens and duration. UI rendering preserves other mods.
 
-Repeated-read tracking observes identical successful parameters per agent. It does not block reads, cache file contents or observe outside filesystem changes. Edits, shells, MCP calls and explicitly selected project checks conservatively clear signatures and advance an observed revision.
+`tool.call` always delegates to the host permission chain. There is no command-word or secret-file-path rejection, and hook failure falls back to the host. Results receive best-effort redaction and optional long-text filtering; a changed result loses the original engine `ref` and `text` to avoid replaying unsanitized content. Filtering prioritizes errors and nearby evidence, then head/tail samples. Omitted ranges are marked. Read/Grep/Glob source text and non-text MCP blocks are not shortened. Hook failure may preserve an original result; redaction is not a security boundary.
 
-Verification receipts need numeric exit zero for PASS; missing exit, interruption/background work and failure remain distinct. Starting revision is captured before execution so concurrent edits make receipts stale. Only the last 50 names/statuses/codes/revisions/durations stay in memory, without command arguments or output bodies. An exit-zero program does not prove test quality or the entire project. External edits are not watched.
+Repeated-read tracking observes successful Read/Grep/Glob parameters per agent without suppressing reads. Edits, shells, MCP calls, and explicit project checks clear signatures and advance an observed revision. External edits are not detected. Receipts require numeric exit zero for PASS, retain only the last 50 records, and become stale after observed activity. Reports use schema 2, omit the removed blocked counter, and contain no prompt or output bodies.
 
-`/prodev-checks run <name>` reads a bounded reviewed `.prodev.json` only on demand, then explicitly uses `$.process.run(argv)` as the Windows user, without a shell. This user-selected process API is separate from model tool approval; project scripts can do arbitrary work, so review them first. One profile process runs at a time. [Profile contract](PROJECT-CHECKS.md). `/prodev-report` prints metrics JSON to the transcript; no plugin disk export. Claude may retain its normal transcript.
+Advisor and team skills are explicitly invoked and use the host's model runtime. They do not run inside the deterministic command handlers. The advisor skill requests Sonnet for the current turn and calls the read-only Opus role only when useful. Context must be supplied explicitly. Omitting an agent name keeps this an ordinary consultation even with teams enabled. Model access remains subject to plan and host restrictions.
 
-Hook error handling denies a call if inspection failed before `next`. After the engine has run, it returns the existing engine result without executing again; redaction can be bypassed on that error path. Treat guard/redaction as scaffolding, not a security boundary.
+The team skill requires native interactive Agent Teams. Claude Code owns team directories, shared tasks, and messages; Pro Dev does not pre-author runtime team configuration. Teammates receive objectives, evidence, file ownership, and dependencies. `/prodev-flow` shows observed spawn/turn activity only and cannot reconstruct a full persistent team state.
 
-The plugin does not change model/effort, start agents, make extra model requests, poll HTTP or use timers. Queue state stays in memory; draft fills the prompt and waits for user submission. Suggestions use local state only. Mermaid output is text, with no custom renderer or CDN.
+The installer stages an allowlisted package, snapshots settings/marketplace metadata, installs through the official CLI, updates stale caches, verifies, and rolls back on failure. `-EnableAgentTeams` merges only the teams environment entry; ordinary installation preserves the current preference. Model and permission settings are retained. Manual compaction remains the package default. The generated root installer must be rebuilt after embedded source changes.
 
-Installation copies source under the chosen Claude config folder and registers a local marketplace through the official CLI. Existing configuration and the prior package are backed up and restored on failure. The same ID's older cache is explicitly updated before verification. Only overlapping user-scope prodev plugins are disabled. Release building uses selected source paths; Git/build metadata, unrelated root files and generated host/private MCP types stay outside archives. Scripts and benchmark fixtures are embedded; included files still require privacy review.
-
-Live smoke exercises real CLI sessions and Windows processes without model turns. The A/B runner uses per-process disabled-plugin maps and checks initialization before paid task work. Built-in host plugins remain identical in both arms; one collector and independent acceptance evaluate both. Permanent plugin settings are not changed. See [evidence](VERIFICATION.md) and [pilot](PILOT.md).
-
-The API is early access. Custom panes, persisted queues, project-specific guard policies and semantic summarization remain future work.
+Native tests exercise the real Mods event chain with controlled external tool responses. Installer/release tests use isolated configuration folders; they never install into the user's existing profile. Interactive advisor/team behavior needs separate live verification. [Verification](VERIFICATION.md).

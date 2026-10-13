@@ -1,4 +1,4 @@
-import { CORE_RULES, riskyCommand, secretPath, redact, redactValue, filterResult, filterText, isShell, checkKind, checkStatus, parseProfile } from './policy.js';
+import { CORE_RULES, redact, redactValue, filterResult, filterText, isShell, checkKind, checkStatus, parseProfile } from './policy.js';
 
 const refresh = $ => $.ui.invalidate('ui.render');
 async function loadProfile($) {
@@ -12,9 +12,8 @@ export function register(on) {
   let usage = { context: {}, rateLimits: [] };
   let tokens = { input: 0, output: 0, read: 0, write: 0 };
   let observedUsage = false;
-  let guard = true;
   let filtering = true;
-  let calls = 0, repeated = 0, blocked = 0, shortened = 0, edits = 0;
+  let calls = 0, repeated = 0, shortened = 0, edits = 0;
   let lastFailed = false;
   let nextId = 1;
   let queue = [];
@@ -44,7 +43,7 @@ export function register(on) {
     return item ? item.percentUsed + '% used' : 'unknown';
   };
   const headline = () => `Pro Dev | 5h: ${windowText('five_hour')} | 7d: ${windowText('seven_day')} | cache: ${cache()} | context: ${usage.context.percent ?? 'unknown'}${usage.context.percent === undefined ? '' : '%'}`;
-  const counters = () => `tools: ${calls} | repeat reads: ${repeated} | agents: ${[...agents.values()].filter(a => a.state === 'running').length} | queue: ${queue.length} | filtered: ${shortened} | blocked: ${blocked} | checks: ${receipts.filter(r => r.status === 'pass' && r.revision === revision).length} current pass`;
+  const counters = () => `tools: ${calls} | repeat reads: ${repeated} | agents: ${[...agents.values()].filter(a => a.state === 'running').length} | queue: ${queue.length} | filtered: ${shortened} | checks: ${receipts.filter(r => r.status === 'pass' && r.revision === revision).length} current pass`;
   const suggestions = () => [
     ...(lastFailed ? ['Investigate the last failed check using a targeted error log.'] : []),
     ...(edits ? ['Review the diff and run the smallest relevant verification.'] : ['Identify the relevant files with one narrow search.']),
@@ -67,7 +66,6 @@ export function register(on) {
       ['prodev-queue', 'Manage a session queue without automatic execution', 'add <text> | list | remove <id> | draft <id> | clear'],
       ['prodev-flow', 'Show observed agent activity', '[mermaid]'],
       ['prodev-next', 'Show local next-step suggestions without a model call', ''],
-      ['prodev-guard', 'Enable or disable the session destructive-command guard', 'on | off'],
       ['prodev-filter', 'Enable or disable long-output filtering', 'on | off'],
       ['prodev-doctor', 'Diagnose loaded hooks, command conflicts and missing readings', ''],
       ['prodev-checks', 'Verification receipts; explicitly run a trusted project check', 'profile | run <name>'],
@@ -86,7 +84,7 @@ export function register(on) {
 
   on('session.measure', ($, e, next) => {
     observed['session.measure']++;
-    usage = { context: e.context, rateLimits: e.rateLimits, cost: e.cost };
+    usage = { context: e.context, rateLimits: e.rateLimits };
     refresh($);
     return next(e);
   });
@@ -94,13 +92,6 @@ export function register(on) {
   on('tool.call', async ($, e, next) => {
     calls++;
     observed['tool.call']++;
-    const reason = guard && isShell(e.tool) ? riskyCommand(e.command) : null;
-    const paths = [e.file_path, e.path];
-    if (reason || paths.some(p => p && secretPath(p))) {
-      blocked++;
-      refresh($);
-      return { deny: reason ? `Pro Dev guard: ${reason}. Ask the user for authorization; an explicitly chosen /prodev-guard off disables this heuristic for this session.` : 'Pro Dev secret guard: known secret file path. Use a sanitized example or inspect locally.' };
-    }
     const readKey = ['Read', 'Grep', 'Glob'].includes(e.tool)
       ? JSON.stringify([e.tool, e.agentId ?? 'main', e.file_path, e.path, e.pattern, e.glob, e.offset, e.limit, e.output_mode, e.head_limit, e.type, e['-A'], e['-B'], e['-C'], e['-i'], e['-n'], e.multiline]) : null;
     if (readKey && reads.has(readKey)) repeated++;
@@ -129,7 +120,7 @@ export function register(on) {
     // the engine validate/remap the sanitized result for the model/transcript.
     const { ref, text, ...rest } = result;
     return { ...rest, result: clean };
-  }).catch(($, e, next) => next.called ? next(e) : ({ deny: 'Pro Dev guard could not inspect this tool call; retry after checking the plugin.' }));
+  }).catch(($, e, next) => next(e));
 
   on('agent.spawn', async ($, e, next) => {
     const result = await next(e);
@@ -164,19 +155,19 @@ export function register(on) {
     return next(e);
   });
 
-  on('command.run', { command: 'prodev' }, () => ({ text: [headline(), counters(), `observed input: ${tokens.input}, cache read: ${tokens.read}, cache write: ${tokens.write}, output: ${tokens.output}`, `guard: ${guard ? 'on' : 'off'} | filter: ${filtering ? 'on' : 'off'}`, 'Helpers: /prodev-doctor, /prodev-checks, /prodev-report, /prodev-queue, /prodev-flow [mermaid], /prodev-next, /prodev-guard on|off, /prodev-filter on|off'].join('\n') }));
+  on('command.run', { command: 'prodev' }, () => ({ text: [headline(), counters(), `observed input: ${tokens.input}, cache read: ${tokens.read}, cache write: ${tokens.write}, output: ${tokens.output}`, `filter: ${filtering ? 'on' : 'off'} | permissions: Claude Code`, 'Local helpers: /prodev-doctor, /prodev-checks, /prodev-report, /prodev-queue, /prodev-flow [mermaid], /prodev-next, /prodev-filter on|off', 'Model workflows: /prodev:advisor <task>, /prodev:team <task> (subscription usage applies)'].join('\n') }));
   on('command.run', { command: 'prodev-doctor' }, () => ({ text: [
-    'Pro Dev 0.2.0 doctor (this session; not an installation or security certificate)',
+    'Pro Dev 0.3.0 doctor (this session; not an installation or security certificate)',
     ...Object.entries(observed).map(([name, n]) => `${name}: ${n ? 'observed (' + n + ')' : 'not observed'}`),
     ...[...collisions].map(name => `${name}: registration failed; inspect other mods with /plugin`),
     `helpers registered: ${registered.size} | quota: ${usage.rateLimits.some(r => Number.isFinite(r.percentUsed)) ? 'host reading available' : 'unknown'}`,
-    `guard: ${guard ? 'on' : 'off'} | filtering: ${filtering ? 'on' : 'off'} | redaction: active`,
+    `permissions: Claude Code | filtering: ${filtering ? 'on' : 'off'} | output redaction: active`,
     'Unknown/stale receipts are not passes. Shell aliases/encoded commands and external edits are not fully observed.',
     'If this command is unavailable, run the installed scripts/doctor.ps1 outside Claude.',
   ].join('\n') }));
   on('command.run', { command: 'prodev-report' }, () => ({ text: JSON.stringify({
-    schemaVersion: 1, version: '0.2.0', scope: 'session-only',
-    counters: { tools: calls, repeatedReads: repeated, blocked, filtered: shortened, edits, queue: queue.length, agents: agents.size },
+    schemaVersion: 2, version: '0.3.0', scope: 'session-only',
+    counters: { tools: calls, repeatedReads: repeated, filtered: shortened, edits, queue: queue.length, agents: agents.size },
     turns: { completed, durationMs }, tokens: observedUsage ? tokens : null,
     rateLimits: usage.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed ?? null })),
     receipts: receipts.map(r => ({ ...r, stale: r.revision !== revision })),
@@ -208,12 +199,12 @@ export function register(on) {
   });
   on('command.run', { command: 'prodev-flow' }, ($, e) => ({ text: flow(e.args.trim() === 'mermaid') }));
   on('command.run', { command: 'prodev-next' }, () => ({ text: suggestions().map((s, i) => `${i + 1}. ${s}`).join('\n') }));
-  on('command.run', { command: ['prodev-guard', 'prodev-filter'] }, ($, e) => {
+  on('command.run', { command: 'prodev-filter' }, ($, e) => {
     const value = e.args.trim();
     if (!['on', 'off'].includes(value)) return { text: `Usage: /${e.command} on|off` };
-    if (e.command === 'prodev-guard') guard = value === 'on'; else filtering = value === 'on';
+    filtering = value === 'on';
     refresh($);
-    return { text: `${e.command}: ${value} for this session. Secret path checks and output redaction remain active.` };
+    return { text: `${e.command}: ${value} for this session. Output redaction remains active.` };
   });
 
   on('command.run', { command: 'prodev-queue' }, async ($, e) => {

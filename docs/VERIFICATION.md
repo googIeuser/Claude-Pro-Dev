@@ -1,52 +1,26 @@
-# Verification evidence — 2026-10-04
+# Verification — v0.3.0, 2026-10-13
 
-Local Claude version: **2.1.289**. Supported target floor: **2.1.287**. Initial v0.1 hosted CI passed on both binaries and both PowerShell shells: [four-job run](https://github.com/googIeuser/Claude-Pro-Dev/actions/runs/37221899516). Check current v0.2 hosted results on the [Actions page](https://github.com/googIeuser/Claude-Pro-Dev/actions).
+Local host: Claude Code **2.1.292**, Windows, Windows PowerShell 5.1 and PowerShell 7. Current hosted results belong on the [Actions page](https://github.com/googIeuser/Claude-Pro-Dev/actions); local checks are not hosted CI results.
 
-## v0.2 local and live evidence
+| Check | Evidence and scope |
+| --- | --- |
+| Strict marketplace/plugin validation | Passed in the actual Claude Code CLI. |
+| Native Mods tests | 47 passed, 0 failed. External engine work is controlled. Command/file-name blocking is removed; host permission refusals pass through. Output redaction/filtering, receipts, usage, and queue behavior remain covered. |
+| Actual CLI loading | Initialization discovers `prodev:advisor` and `prodev:executor` agents, plus `prodev:advisor` and `prodev:team` skills/commands. This proves discovery, not model behavior. |
+| Actual local helper smoke | 14 helper results, zero model turns; eight immediate helpers registered; real Windows processes return exit 0 and 7; synthetic output secret is masked. |
+| Isolated installer, both shells | Default teams preference preserved; explicit teams flag enabled with unrelated environment entries preserved; repeat/source/embedded installation, version upgrade, malformed settings rejection, and rollback pass. Existing user profile is not modified by these tests. |
+| Release packaging, both shells | Agent roles and workflow skills are embedded; allowlist, payload/checksum integrity, reproducibility, and source-root protection pass. |
+| Metrics, acceptance, doctor, both shells | API billing estimates omitted; token categories retained; original bug rejected and six fixed cases accepted; negative diagnostics leave the test suite with exit zero. |
 
-| Check | Evidence |
-|---|---|
-| Actual native Mods engine | 48 tests passed, 0 failed; 17 added confidence tests |
-| Long shell output | Bash and PowerShell retain a middle error, following stack and assertion despite huge head/tail noise; bounded output and exit metadata |
-| Verification receipts | Numeric success/failure, unknown/background, stale after edits, and concurrent-edit handling covered |
-| Actual CLI helper smoke | 16 helper results; 0 model turns and 0 API duration; real Windows processes return exit 0/7; synthetic secret masked |
-| Actual CMD interactive terminal | HUD at 80 columns, doctor, queue add/list/draft; draft fills composer and waits for Enter; report shows 0 completed model turns |
-| Actual model work | Four final Sonnet/low runs; 4/4 independent six-case acceptance, correct A/B isolation, no tool errors/permission denials |
-| PowerShell 5.1 and 7 | Fresh isolated upgrade/reinstall/rollback, doctor, metrics, independent acceptance and release-reproducibility suites passed |
-| Existing user profile | Upgraded to 0.2.0; installed doctor passed; model/effort/permission/status-line and unrelated plugin fields preserved |
+The changed permission-chain/profile tests and billing-metric assertion were observed failing before the implementation. The installer test also failed on the absent `-EnableAgentTeams` parameter before it was added. Destructive-looking commands use controlled tool responses; no destructive real command was executed.
 
-The live doctor exposed a /prodev collision with this package's own skill; renaming the optional skill to engineering fixed all nine helper registrations. An upgrade regression exposed `plugin install` retaining the old cache; the installer now explicitly updates an older version for the same user-scope ID. Calibration runs and the lack of a demonstrated savings result are retained in [PILOT.md](PILOT.md).
+## Not verified by these checks
 
-Native test external engine responses are controlled; live smoke uses real command registrations, real queue state and Windows processes. The CMD terminal check uses actual interactive CLI rendering and input through a pseudoterminal, not a Desktop screenshot. Desktop is covered by render-tree tests only. Real agent-spawn UI, resizing, organization-managed policies, live quota accuracy and actual subscription savings remain unmeasured. Missing quota values were honestly unknown. No destructive command was executed; guard tests use controlled engine responses.
+- Actual Sonnet/Opus selection and advice quality under a subscription, model-unavailable fallbacks, or return to the session model after a skill turn.
+- Native interactive teammate creation, task/message coordination, shutdown, resume behavior, or terminal/Desktop usability of the new workflows.
+- Account-wide quota accuracy, reduced allowance consumption, or general task-quality improvement.
+- Current changes on every older supported binary or organization-managed configuration. CI is configured for Claude 2.1.287/2.1.289 and both PowerShell shells.
 
-Initial v0.1 validation recorded:
+Use the signed-in scenarios in [the benchmark protocol](BENCHMARK.md) to test model/team behavior. Those scenarios consume account allowance. The self-contained installer is generated from source; rebuild after embedded changes. Historical [v0.1/v0.2 verification](VERIFICATION.v0.2.md) and [pilot results](PILOT.md) do not establish v0.3 workflow behavior or savings.
 
-| Check | Evidence |
-|---|---|
-| Strict marketplace/plugin manifests | Passed |
-| Native Mods engine tests | 31 passed, 0 failed |
-| PowerShell 5.1 and 7 isolated installer suites | Passed |
-| Spaces in config paths, repeat installation, embedded scriptblock install | Passed |
-| Existing model/permission/unrelated plugin settings preserved | Passed |
-| Populated plugin/marketplace arrays and legacy prodev collision | Passed |
-| Mid-install failure rollback and malformed settings rejection | Passed |
-| Release allowlist, embedded/checksum integrity and reproducibility | Passed under local PowerShell 5.1 during packaging development |
-
-Native tests load actual plugin files into the real event chain. Controlled responses substitute external engine work, including tool execution and usage readings. Terminal/Desktop render trees are covered; a real screen usability test is not. Tests do not require a model request.
-
-The earlier package was also installed in an existing user profile. The new plugin was enabled, an overlapping older prodev was disabled with files retained, and unrelated plugin states/model/permission/status-line settings were preserved. Private account data and profile paths are intentionally absent from this public record.
-
-The GitHub preparation changes distribution, tests and documentation; it does not change plugin runtime policy. See README for repeatable commands.
-
-## GitHub preparation checks
-
-The prepared source was checked locally on the same date:
-
-- Strict marketplace/plugin validation passed; native engine tests: **31 passed, 0 failed**.
-- Release packaging, payload/asset hashes, repeated-build reproducibility and source-root protection passed in Windows PowerShell 5.1 and PowerShell 7.
-- Isolated installer suites passed in both shells: first/repeat/embedded installation, legacy collision, unrelated settings and failed-install rollback.
-- Both GitHub workflow definitions passed **actionlint 1.7.12**. This validates workflow definitions; it is not a hosted execution result.
-
-Repository: [googIeuser/Claude-Pro-Dev](https://github.com/googIeuser/Claude-Pro-Dev). The READMEs use the real source installer URL. Version-pinned installation requires the matching release to have been published. Initial preparation evidence above describes local checks; hosted results are recorded by GitHub Actions.
-
-The v0.1 observations above are historical. The v0.2 section adds live terminal/helper/model evidence; it does not extend those results to Desktop screens, account-wide quota accuracy or general savings.
+Türkçe: Native testler, iki PowerShell sürümündeki ayrı kurulum/paket kontrolleri ve model isteği açmayan gerçek CLI yardımcıları doğrulandı. Yeni ajan/komutlar host tarafından bulunuyor. Canlı Sonnet/Opus danışma kalitesi ve yerel ekip koordinasyonu henüz sınanmadı; bunlar için giriş yapılmış etkileşimli oturum gerekir. Tasarruf iddiası yoktur.

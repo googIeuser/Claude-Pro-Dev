@@ -12,7 +12,7 @@ $installer = Join-Path $package 'install.ps1'
 Assert (Test-Path -LiteralPath $installer) 'one-command installer exists'
 $utf8 = New-Object Text.UTF8Encoding($false)
 $settingsPath = Join-Path $config 'settings.json'
-$original = '{"model":"sonnet","autoCompactWindow":120000,"autoCompactEnabled":true,"permissions":{"deny":["Bash(whoami)"]},"enabledPlugins":{"keep@demo":false}}'
+$original = '{"model":"sonnet","env":{"KEEP_ENV":"retained","CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS":"0"},"autoCompactWindow":120000,"autoCompactEnabled":true,"permissions":{"deny":["Bash(whoami)"]},"enabledPlugins":{"keep@demo":false}}'
 [IO.File]::WriteAllText($settingsPath, $original, $utf8)
 # Exercise a populated configuration, including an older prodev from another
 # marketplace. Windows PowerShell 5.1 returns JSON arrays as one pipeline item.
@@ -42,12 +42,16 @@ $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($settings.autoCompactEnabled -eq $false) 'automatic compaction is disabled'
 Assert ($null -eq $settings.PSObject.Properties['autoCompactWindow']) 'custom 120k compaction threshold is removed'
 Assert ($settings.model -eq 'sonnet') 'existing model is preserved'
+Assert ($settings.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS -eq '0') 'normal installation preserves the existing teams preference'
 Assert ($settings.permissions.deny[0] -eq 'Bash(whoami)') 'existing permission rules are preserved'
 Assert ($settings.enabledPlugins.'keep@demo' -eq $false) 'unrelated plugin setting is preserved'
 Assert ($settings.enabledPlugins.'prodev@claude-pro-dev-local' -eq $true) 'prodev is enabled through Claude CLI'
 Assert ($settings.enabledPlugins.'prodev@prodev-fixture-legacy' -eq $false) 'older prodev is disabled to prevent a command-name collision'
 Assert ($settings.enabledPlugins.'companion@prodev-fixture-legacy' -eq $true) 'unrelated installed plugin stays enabled'
-& $installer -SourcePath $package -ClaudeConfigDir $config
+& $installer -SourcePath $package -ClaudeConfigDir $config -EnableAgentTeams
+$teamSettings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+Assert ($teamSettings.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS -eq '1') 'opt-in installation enables native agent teams'
+Assert ($teamSettings.env.KEEP_ENV -eq 'retained') 'enabling teams preserves unrelated environment settings'
 & (Join-Path $package 'scripts\verify.ps1') -ClaudeConfigDir $config
 $shellExe = (Get-Process -Id $PID).Path
 $doctorJson = & $shellExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $package 'scripts\doctor.ps1') -ClaudeConfigDir $config -Json
@@ -62,10 +66,10 @@ foreach ($name in @('.claude-plugin', 'plugins')) { Copy-Item -LiteralPath (Join
 $oldManifest = Join-Path $upgradeSource 'plugins\prodev\.claude-plugin\plugin.json'
 $oldMarket = Join-Path $upgradeSource '.claude-plugin\marketplace.json'
 $oldPlugin = [IO.File]::ReadAllText($oldManifest) | ConvertFrom-Json
-$oldPlugin.version = '0.1.0'
+$oldPlugin.version = '0.2.0'
 [IO.File]::WriteAllText($oldManifest, ($oldPlugin | ConvertTo-Json -Depth 8), $utf8)
 $oldCatalog = [IO.File]::ReadAllText($oldMarket) | ConvertFrom-Json
-$oldCatalog.plugins[0].version = '0.1.0'
+$oldCatalog.plugins[0].version = '0.2.0'
 [IO.File]::WriteAllText($oldMarket, ($oldCatalog | ConvertTo-Json -Depth 8), $utf8)
 try {
     $env:CLAUDE_CONFIG_DIR = $upgradeConfig
@@ -79,7 +83,7 @@ try {
     $env:CLAUDE_CONFIG_DIR = $upgradeConfig
     $upgraded = (& $fixtureClaude plugin list --json) | ConvertFrom-Json
     $upgradedItem = @($upgraded | Where-Object { $_.id -eq 'prodev@claude-pro-dev-local' -and $_.scope -eq 'user' })
-    Assert ($upgradedItem.Count -eq 1 -and $upgradedItem[0].version -eq '0.2.0') 'v0.1 upgrades to v0.2 in the same user-scope marketplace'
+    Assert ($upgradedItem.Count -eq 1 -and $upgradedItem[0].version -eq '0.3.0') 'v0.2 upgrades to v0.3 in the same user-scope marketplace'
 } finally { $env:CLAUDE_CONFIG_DIR = $beforeFixtureEnv }
 Assert ($true) 'a second install and verification succeed'
 $marketplaceDataPath = Join-Path $config 'plugins\known_marketplaces.json'
@@ -103,10 +107,13 @@ try {
     $output = @(& $fixtureClaude plugin enable 'prodev@prodev-fixture-legacy' --scope user --json 2>&1)
     if ($LASTEXITCODE -ne 0) { throw "Rollback fixture setup failed: $($output -join [Environment]::NewLine)" }
 } finally { $env:CLAUDE_CONFIG_DIR = $beforeRollbackEnv }
+$rollbackSettings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+$rollbackSettings.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '0'
+[IO.File]::WriteAllText($settingsPath, ($rollbackSettings | ConvertTo-Json -Depth 100), $utf8)
 $beforeFailure = [IO.File]::ReadAllText($settingsPath)
 $beforeMarketplace = [IO.File]::ReadAllText($marketplaceDataPath)
 $failed = $false
-try { & $installer -SourcePath $badSource -ClaudeConfigDir $config } catch { $failed = $true }
+try { & $installer -SourcePath $badSource -ClaudeConfigDir $config -EnableAgentTeams } catch { $failed = $true }
 Assert $failed 'failed post-install verification is reported'
 Assert ([IO.File]::ReadAllText($settingsPath) -eq $beforeFailure) 'settings are restored after a mid-install failure'
 Assert ([IO.File]::ReadAllText($marketplaceDataPath) -eq $beforeMarketplace) 'marketplace metadata is restored after failure'

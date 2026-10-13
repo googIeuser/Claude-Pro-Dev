@@ -1,44 +1,31 @@
-# v0.2 yapı ve kapsam
+# Mimari — v0.3
 
-```text
-claude-pro-dev/
-  .claude-plugin/marketplace.json
-  install.ps1                     # üretilmiş, gömülü ZIP içeren tek dosya
-  plugins/prodev/
-    .claude-plugin/plugin.json
-    hooks/hooks.json              # tek native mod module
-    hooks/register.js             # event middleware ve UI
-    hooks/policy.js               # core, guard, redactor, filter
-    skills/engineering/SKILL.md    # yalnız kullanıcı çağırır
-    tests/prodev.test.ts           # Claude native test engine
-  scripts/install.template.ps1
-  scripts/build-release.ps1
-  scripts/verify.ps1
-  scripts/doctor.ps1
-  scripts/live-smoke.ps1
-  scripts/benchmark.ps1
-  scripts/cli-session.ps1
-  benchmarks/                     # aynı fixture ve bağımsız kabul kontrolü
-  tests/install.Tests.ps1          # PowerShell, ayrı config dizini
-  docs/ARCHITECTURE.md
-  README.md
-  LICENSE
-```
+[English](ARCHITECTURE.md)
 
-`session.start` usage'ı bir kez okur ve dokuz immediate helper'ı bağımsız kaydeder. Komut çakışması kalan helper'ları durdurmaz; doctor bildirir. `prompt.context` sabit core'u bir kez, mevcut proje talimatlarını koruyarak ekler. Usage/sayaçlar kullanıcı rapor istemedikçe prompt'a girmez. `session.measure` host kota/context olaylarını saklar; `turn.complete` agent/turn başına usage ve süreyi iki kez saymaz. UI diğer modların çizimini korur. Skill `engineering` olarak yeniden adlandırıldı; `/prodev` çakışması giderildi.
+Kökteki marketplace tek `prodev` eklentisi sunar. Eklenti; native Mods modülü, iki ajan tanımı ve kullanıcının çağırdığı skill'lerden oluşur. Ayrı model istemcisi, sunucu, kimlik bilgisi deposu veya ağ isteği kodu içermez.
 
-`tool.call` Bash/PowerShell tehlikeli komut ve secret dosya kalıplarını kontrol eder. `next(e)` modelin normal tool izinlerini korur. Sonuçta redaction ve isteğe bağlı log filtresi uygulanır. Değişen sonuçtan raw engine `ref` ve `text` kaldırılır. Hata satırları önce, çevresindeki stack/assertion ayrıntıları sonra korunur; baş/son kalan bütçeyi kullanır. Atlanan aralıklar işaretlenir. Host'un önceden kestiği içerik kurtarılamaz; tüm kanıt garanti edilmez. Kaynak okumaları ve structured/görsel MCP sonuçları kısaltılmaz.
+| Bileşen | Görevi |
+| --- | --- |
+| `hooks/register.js` | Host olayları, sekiz yerel komut, kullanım göstergesi, kuyruk, kayıtlar ve ajan etkinliği |
+| `hooks/policy.js` | Sabit mühendislik bağlamı, çıktı maskeleme/filtresi, kontrol profili yapı doğrulaması |
+| `agents/advisor.md` | Opus; yalnız Read/Grep/Glob; stratejik öneri ve inceleme |
+| `agents/executor.md` | Sonnet; verilen kapsamda uygulama |
+| `skills/advisor/SKILL.md` | Ana oturumda Sonnet turu ve gerektiğinde normal danışman alt ajanı |
+| `skills/team/SKILL.md` | İsimli ekip üyeleri ve ayrı dosya sahipliğiyle yerel ekip koordinasyonu |
+| `skills/engineering/SKILL.md` | İsteğe bağlı mühendislik kontrol listesi |
+| `scripts/install.template.ps1` | Yedekli kullanıcı kapsamlı kurulum ve isteğe bağlı ekip ayarı |
+| `scripts/build-release.ps1` | İzin verilen dosyalardan ZIP ve bağımsız kök kurulum dosyası |
 
-Tekrarlanan okuma sayacı aynı başarılı Read/Grep/Glob parametrelerini agent başına izler; okumayı engellemez, eski içerik sunmaz. Edit, shell, MCP ve açıkça seçilen proje programı imzaları temizler, gözlenen revision'ı ilerletir. Dışarıdaki dosya değişimi izlenmez.
+`session.start` host kullanımını bir kez okur ve yardımcıları ayrı ayrı kaydeder. Komut çakışması kalan kayıtları durdurmaz. `prompt.context` sabit Core bloğunu bir kez ekler, proje talimatlarını korur. `session.measure` kota/bağlam okumalarını tutar. `turn.complete` ajan/tur token ve sürelerini tekrar saymaz. Arayüz diğer modları korur.
 
-PASS için sayısal exit zero gerekir; kod yoksa UNKNOWN, hata ve arka plan ayrı değerlendirilir. Başlangıç revision'ı kaydedilir; eşzamanlı edit kaydı eski yapar. Son 50 kayıt argüman/çıktı taşımadan bellekte tutulur. Tek programın başarısı bütün projenin veya test kalitesinin garantisi değildir. [Proje kontrolleri](PROJECT-CHECKS.md) yalnız kullanıcı seçince native process API'sinde, Windows kullanıcısının yetkileriyle çalışır. Model tool onayından ayrı bu helper için dosyayı/script'i önce inceleyin. Shell interpolation yoktur; aynı anda bir kontrol çalışır. Rapor diske export yapmaz; Claude normal transcript kaydı tutabilir.
+`tool.call` host izin zincirine aktarır. Komut kelimesi veya hassas dosya adı nedeniyle ret yoktur; hook hatasında da host'a bırakılır. Sonuçlarda hassas veri maskelemesi ve isteğe bağlı uzun çıktı filtresi uygulanır. Değişen sonuçtan engine `ref` ve `text` kaldırılarak ham içeriğin yeniden gösterilmesi önlenir. Hata ve yakın kanıt önce korunur, kalan bütçeyle baş/son örneklenir; atlanan aralıklar belirtilir. Read/Grep/Glob kaynak metni ve metin dışı MCP blokları kısaltılmaz. Hook hatasında ham sonuç kalabilir; maskeleme güvenlik sınırı değildir.
 
-Guard'ın `.catch` handler'ı `next` çağrılmadan bir hata olursa aracı reddeder. Araç zaten çalıştıysa yeniden çalıştırmaz ve engine'in sonucunu korur. Böyle bir hook arızasında sonuç maskeleme atlanabilir; güvenlik sınırı olarak kullanılmamalıdır.
+Tekrar okuma sayacı başarılı parametreleri ajan başına gözler, okumayı engellemez. Edit, shell, MCP ve açıkça seçilen proje kontrolü imzaları temizleyip gözlenen revision'ı ilerletir. Dış değişiklikler görülmez. PASS sayısal exit zero gerektirir. Son 50 kayıt tutulur; sonraki gözlenen etkinlik kaydı eski yapar. Rapor şeması 2'dir; kaldırılan blocked sayacı, prompt ve çıktı gövdeleri içermez.
 
-v0.2 model değiştirmez, ek model request'i/subagent, HTTP/polling/timer üretmez. Optimizer davranış politikasıdır; sert bütçe veya abonelik kontrolü değildir. Queue bellektedir; draft giriş kutusunu doldurur ve Enter bekler. Next-steps yerel sayaçlardan öneri üretir. Mermaid metin export'u vardır; özel renderer yoktur.
+Advisor ve team skill'leri açıkça çağrılır ve host'un model altyapısını kullanır; deterministik yardımcı komutların içinde model isteği yoktur. Advisor skill'i o tur için Sonnet ister, gerektiğinde salt okunur Opus rolüne danışır. Bağlam açıkça aktarılmalıdır. Danışman çağrısında ajan adı verilmemesi, ekip açıkken de normal alt ajan kalmasını sağlar. Model erişimi abonelik ve host kısıtlamalarına bağlıdır.
 
-Yerel marketplace, kalıcı config altındaki kaynak pakete referans verir. CLI ayrıca plugin cache kaydı oluşturur. Kurucu mevcut ayarların yedeğini alıp resmi CLI'yi kullanır; kurulumu yeniden çalıştırmak ikinci hook veya ikinci core kopyası eklemez. Yerel dosya değişikliklerinin yeni oturuma geçmesi `/reload-plugins` ve yeni context gerektirebilir.
+Team skill'i etkileşimli yerel Agent Teams gerektirir. Ekip klasörlerini, görevleri ve mesajları Claude Code yönetir; Pro Dev çalışma zamanı ekip ayar dosyası üretmez. Her üyeye hedef, kanıt, dosya sahipliği ve bağımlılıklar verilir. `/prodev-flow` yalnız gözlenen spawn/tur etkinliğini gösterir; kalıcı ekip durumu değildir.
 
-Eski cache sürümü aynı ID üzerinden açıkça güncellenir. Builder, üretilmiş host/özel MCP tiplerini dışarıda bırakır; doctor/benchmark script'leri ve fixture'lar pakete gömülüdür. Live smoke gerçek CLI ve Windows programlarını model turu açmadan sınar. A/B runner eklentileri süreç bazında ayırır, paid task öncesi initialization'ı denetler; iki taraf aynı collector ve bağımsız kabul kontrolünü kullanır. Kalıcı plugin ayarları değişmez. [Kanıt](VERIFICATION.md), [pilot](PILOT.md).
+Kurucu paketi hazırlar, ayar/marketplace yedeklerini alır, resmî CLI ile kurar, eski cache'i günceller, doğrular ve hata olursa geri döner. `-EnableAgentTeams` yalnız ekip ortam ayarını birleştirir; normal kurulum mevcut tercihi korur. Model ve izin ayarları korunur. Elle sıkıştırma varsayılanı devam eder. Gömülü kaynak değişince kök kurulum dosyası yeniden üretilmelidir.
 
-Native pane, proje guard politikaları, semantic log özetleme ve kalıcı queue sonraki çalışmalardır. Mods erken erişim API'sidir; kullandığınız host sürümünde validate/test çalıştırın.
+Native testler gerçek Mods olay zincirinde dış araç cevaplarını kontrollü kullanır. Kurulum/paket testleri ayrı ayar klasörlerinde çalışır; mevcut kullanıcı profiline kurulum yapmaz. Etkileşimli advisor/team davranışı ayrıca canlı doğrulama gerektirir. [Doğrulama](VERIFICATION.md).

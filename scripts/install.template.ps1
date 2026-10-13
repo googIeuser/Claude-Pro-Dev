@@ -1,10 +1,11 @@
-# Claude Pro Dev 0.2.0 - self-contained installer, Windows PowerShell 5.1+.
+# Claude Pro Dev 0.3.0 - self-contained installer, Windows PowerShell 5.1+.
 # Built from this template by scripts/build-release.ps1.
 [CmdletBinding()]
 param(
     [string]$SourcePath,
     [string]$ClaudeConfigDir,
-    [switch]$UseEmbedded
+    [switch]$UseEmbedded,
+    [switch]$EnableAgentTeams
 )
 $ErrorActionPreference = 'Stop'
 $EmbeddedPackageBase64 = '__PRODEV_PAYLOAD__'
@@ -105,7 +106,7 @@ try {
     $manifest = Get-Content -LiteralPath (Join-Path $stage '.claude-plugin\marketplace.json') -Raw | ConvertFrom-Json
     if ($manifest.name -ne 'claude-pro-dev-local') { throw 'Unexpected marketplace name.' }
     $plugin = Get-Content -LiteralPath (Join-Path $stage 'plugins\prodev\.claude-plugin\plugin.json') -Raw | ConvertFrom-Json
-    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.2.0') { throw 'Unexpected plugin identity or version.' }
+    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.3.0') { throw 'Unexpected plugin identity or version.' }
     Invoke-Claude -Arguments @('plugin', 'validate', $stage, '--strict') | Out-Null
     Invoke-Claude -Arguments @('plugin', 'validate', (Join-Path $stage 'plugins\prodev'), '--strict') | Out-Null
     # Capture JSON arrays directly: @(... | ConvertFrom-Json) nests them in PS 5.1.
@@ -155,11 +156,21 @@ try {
     $settings = Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $settings.PSObject.Properties.Remove('autoCompactWindow')
     $settings | Add-Member -MemberType NoteProperty -Name autoCompactEnabled -Value $false -Force
+    if ($EnableAgentTeams) {
+        if (-not $settings.PSObject.Properties['env']) {
+            $settings | Add-Member -MemberType NoteProperty -Name env -Value ([pscustomobject]@{})
+        }
+        if ($null -eq $settings.env -or $settings.env -is [array] -or $settings.env -is [string] -or $settings.env -is [ValueType]) {
+            throw 'settings.env must be a JSON object to enable agent teams.'
+        }
+        $settings.env | Add-Member -MemberType NoteProperty -Name CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS -Value '1' -Force
+    }
     [IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
     & (Join-Path $target 'scripts\verify.ps1') -ClaudeConfigDir $ClaudeConfigDir
-    Write-Host "Claude Pro Dev 0.2.0 installed. Package: $target"
+    Write-Host "Claude Pro Dev 0.3.0 installed. Package: $target"
     Write-Host "Backups: $backup"
     Write-Host 'Automatic context compaction is disabled. Run /compact manually when needed; restart Claude Code to apply.'
+    if ($EnableAgentTeams) { Write-Host 'Experimental agent teams enabled. Restart Claude Code; use /prodev:team <task> in an interactive session.' }
     foreach ($disabledPlugin in $disabledPlugins) { Write-Host "Disabled overlapping plugin (files retained): $disabledPlugin" }
     Write-Host 'Start Claude Code, or run /reload-plugins. Check /plugin, /prodev-doctor and /prodev.'
 } catch {

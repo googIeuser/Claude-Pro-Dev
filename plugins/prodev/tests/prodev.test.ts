@@ -28,10 +28,11 @@ for (const shell of [
   'Remove-Item -LiteralPath .\\data -Recurse -Force',
   'rmdir /s /q data', 'psql -c "DROP TABLE users"',
 ]) {
-  test('guard refuses before executing: ' + shell, async ($, on) => {
+  test('command text reaches the host permission chain: ' + shell, async ($, on) => {
     setup(on);
     const result = await $.tool.call({ tool: 'Bash', command: shell });
-    expect(result.deny).toContain('Pro Dev');
+    expect(result.deny).toBeUndefined();
+    expect(result.result.stdout).toBe('ran');
   });
 }
 test('ordinary shell work is allowed', async ($, on) => {
@@ -39,9 +40,9 @@ test('ordinary shell work is allowed', async ($, on) => {
   const result = await $.tool.call({ tool: 'Bash', command: 'git status --short' });
   expect(result.result.stdout).toBe('ran');
 });
-test('secret files are refused before reading; templates are allowed', async ($, on) => {
+test('file names do not block host-authorized reads', async ($, on) => {
   setup(on);
-  expect((await $.tool.call({ tool: 'Read', file_path: 'C:\\repo\\.env.local' })).deny).toContain('secret');
+  expect((await $.tool.call({ tool: 'Read', file_path: 'C:\\repo\\.env.local' })).result).toBe('read happened');
   expect((await $.tool.call({ tool: 'Read', file_path: 'C:/repo/.env.example' })).result).toBe('read happened');
 });
 test('secret shell output is redacted before the model sees it', async ($, on) => {
@@ -154,10 +155,9 @@ test('disabling output filtering still redacts secrets', async ($, on) => {
   expect(result.result.stdout).not.toContain('hidden-value');
   expect(result.result.stdout).not.toContain('omitted');
 });
-test('disabling heuristic guard preserves downstream permission refusal', async ($, on) => {
+test('downstream permission refusal is preserved without a Pro Dev guard toggle', async ($, on) => {
   setup(on, { deny: 'permission denied by engine' });
   await $.session.start({ cwd: 'C:/repo', interactive: true });
-  await command($, 'off', 'prodev-guard');
   expect((await $.tool.call({ tool: 'Bash', command: 'git reset --hard' })).deny).toBe('permission denied by engine');
 });
 test('MCP text is bounded while structured and image evidence stays intact', async ($, on) => {

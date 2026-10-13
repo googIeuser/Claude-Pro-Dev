@@ -1,8 +1,8 @@
 {
-    "claudeVersion":  "2.1.289 (Claude Code)",
-    "helperResults":  16,
+    "claudeVersion":  "2.1.292 (Claude Code)",
+    "helperResults":  14,
     "modelTurns":  0,
-    "apiDurationMs":  0,
+    "workflowDiscovery":  "advisor/executor agents and advisor/team commands",
     "checks":  [
                    {
                        "status":  "pass",

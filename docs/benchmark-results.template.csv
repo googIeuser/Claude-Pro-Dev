@@ -1,4 +1,4 @@
-"run_id","task_id","repeat","arm","position_in_pair","model","effort","claude_version","cache_observation","success","wall_seconds","api_success_events","api_error_events","input_tokens","cache_creation_tokens","cache_read_tokens","output_tokens","tools_executed","tools_rejected","repeat_reads_common_definition","agents_started","human_interventions","quota_5h_start","quota_5h_end","quota_7d_start","quota_7d_end","notes"
+"run_id","task_id","repeat","arm","position_in_pair","model","effort","claude_version","cache_observation","success","wall_seconds","model_success_events","model_error_events","input_tokens","cache_creation_tokens","cache_read_tokens","output_tokens","tools_executed","tools_rejected","repeat_reads_common_definition","agents_started","human_interventions","quota_5h_start","quota_5h_end","quota_7d_start","quota_7d_end","notes"
 "T1-R1-A","T1","1","A","1","","","","","","","","","","","","","","","","","","","","","",""
 "T1-R1-B","T1","1","B","2","","","","","","","","","","","","","","","","","","","","","",""
 "T1-R2-B","T1","2","B","1","","","","","","","","","","","","","","","","","","","","","",""

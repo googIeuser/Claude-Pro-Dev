@@ -54,7 +54,7 @@ function Get-ClaudeMetrics([string]$JsonLines) {
         model = $models; turns = $final.num_turns; durationMs = $final.duration_ms
         inputTokens = $final.usage.input_tokens; outputTokens = $final.usage.output_tokens
         cacheReadTokens = $final.usage.cache_read_input_tokens; cacheWriteTokens = $final.usage.cache_creation_input_tokens
-        apiCostUsd = $final.total_cost_usd; toolRequests = $ids.Count; toolErrors = $errors.Count
+        toolRequests = $ids.Count; toolErrors = $errors.Count
         repeatedReads = $repeated; permissionDenials = if ($final) { @($final.permission_denials).Count } else { $null }
         agents = $final.subagent_stats.spawned
     }

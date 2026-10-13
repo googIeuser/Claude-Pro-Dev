@@ -20,10 +20,11 @@ function files(on, text = JSON.stringify(profile)) {
   on('fs.read', () => ({ value: text }));
 }
 
-test('PowerShell guard denies recursive deletion before engine execution', async ($, on) => {
+test('PowerShell text reaches the host permission chain', async ($, on) => {
   engine(on);
   const r = await $.tool.call({ tool: 'PowerShell', command: 'Remove-Item .\\data -Recurse -Force' });
-  expect(r.deny).toContain('recursive deletion');
+  expect(r.deny).toBeUndefined();
+  expect(r.result.stdout).toBe('ok');
 });
 
 for (const shell of ['Bash', 'PowerShell'] as const) {
@@ -92,12 +93,15 @@ test('failure evidence is recorded while harmless stderr cannot turn explicit ex
   expect((await cmd($, 'prodev-checks', 'run unit')).text).toContain('PASS');
 });
 
-test('invalid, secret-bearing and recognizable destructive profiles never execute', async ($, on) => {
-  const bad = { version: 1, checks: [{ name: 'unit', argv: ['git', 'reset', '--hard'] }] };
-  engine(on); files(on, JSON.stringify(bad));
-  on('process.run', () => { throw new Error('Must not execute'); });
+test('explicit project check accepts command words without keyword refusal', async ($, on) => {
+  const check = { version: 1, checks: [{ name: 'unit', argv: ['echo', 'DROP TABLE is a documentation example', '.env'] }] };
+  engine(on); files(on, JSON.stringify(check));
+  on('process.run', ($, e) => {
+    expect(e.argv.join('|')).toBe('echo|DROP TABLE is a documentation example|.env');
+    return { value: { exitCode: 0, stdout: 'example', stderr: '' } };
+  });
   await boot($);
-  expect((await cmd($, 'prodev-checks', 'run unit')).text).toContain('refused');
+  expect((await cmd($, 'prodev-checks', 'run unit')).text).toContain('PASS');
 });
 
 test('oversized profiles are refused before reading the file', async ($, on) => {
@@ -145,8 +149,7 @@ test('an edit while a shell check runs makes its receipt stale', async ($, on) =
 
 for (const value of [
   { version: 2, checks: [] },
-  { version: 1, checks: [{ name: 'unit', argv: ['echo', 'API_KEY=synthetic-value'] }] },
-  { version: 1, checks: [{ name: 'unit', argv: ['cat', '.env'] }] },
+  { version: 1, checks: [{ name: 'unit', argv: ['echo', 'line\nbreak'] }] },
   { version: 1, checks: [{ name: 'unit', argv: ['node', 42] }] },
 ]) {
   test('invalid profile is refused: ' + JSON.stringify(value), async ($, on) => {

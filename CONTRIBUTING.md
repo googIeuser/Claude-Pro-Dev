@@ -4,7 +4,7 @@ Use Windows PowerShell 5.1 or PowerShell 7 and Claude Code 2.1.287+. Claude's na
 
 Keep changes focused. Preserve project instructions and Claude permissions. Avoid background polling, unsolicited model requests/agents, raw secret logging and broad truncation. Explain the benefit before adding dependencies.
 
-For behavior changes add a regression test that fails before the fix. Native tests live in `plugins/prodev/tests/`; installer/release tests live in `tests/` and use temporary folders. Test guards with synthetic events, not destructive real commands. Use fake secrets.
+For behavior changes add a regression test that fails before the fix. Native tests live in `plugins/prodev/tests/`; installer/release tests live in `tests/` and use temporary folders. Test permission-chain behavior with synthetic events, not destructive real commands. Use fake secrets. Advisor/team prompt behavior needs a signed-in manual scenario; static text checks do not prove model behavior.
 
 Run the README validation/build commands, then also run:
 
@@ -17,4 +17,4 @@ Rebuild after changing embedded files and include refreshed root `install.ps1`. 
 
 Describe the problem, resulting behavior and validation in pull requests. Explain model/tool overhead, false positives or possible evidence loss. Report live UI and A/B results separately from native tests; use [the benchmark protocol](docs/BENCHMARK.md).
 
-When investigating API compatibility, use `/plugin-types` to generate types for your installed version. Do not commit account-specific generated output.
+When investigating native Mods compatibility, use `/plugin-types` to generate types for your installed version. Do not commit account-specific generated output.

@@ -27,7 +27,7 @@ function Assert($Condition, [string]$Message) {
 $builder = Join-Path $fixture 'scripts\build-release.ps1'
 & $builder
 $dist = Join-Path $fixture 'dist'
-$zipPath = Join-Path $dist 'claude-pro-dev-v0.2.0.zip'
+$zipPath = Join-Path $dist 'claude-pro-dev-v0.3.0.zip'
 Assert (Test-Path -LiteralPath $zipPath) 'default build produces a versioned ZIP in dist'
 Assert (Test-Path -LiteralPath (Join-Path $dist 'install.ps1')) 'release includes a standalone installer asset'
 Assert (Test-Path -LiteralPath (Join-Path $dist 'SHA256SUMS.txt')) 'release includes checksums for both assets'
@@ -36,9 +36,9 @@ $stream = [IO.File]::OpenRead($zipPath)
 $archive = New-Object IO.Compression.ZipArchive($stream, [IO.Compression.ZipArchiveMode]::Read)
 try {
     $names = @($archive.Entries | ForEach-Object { $_.FullName })
-    Assert ($names -contains 'claude-pro-dev-v0.2.0/.claude-plugin/marketplace.json') 'marketplace dot-directory is included'
-    Assert ($names -contains 'claude-pro-dev-v0.2.0/plugins/prodev/.claude-plugin/plugin.json') 'plugin dot-directory is included'
-    Assert ($names -contains 'claude-pro-dev-v0.2.0/tests/install.Tests.ps1') 'source archive includes installation regression tests'
+    Assert ($names -contains 'claude-pro-dev-v0.3.0/.claude-plugin/marketplace.json') 'marketplace dot-directory is included'
+    Assert ($names -contains 'claude-pro-dev-v0.3.0/plugins/prodev/.claude-plugin/plugin.json') 'plugin dot-directory is included'
+    Assert ($names -contains 'claude-pro-dev-v0.3.0/tests/install.Tests.ps1') 'source archive includes installation regression tests'
     Assert (@($names | Where-Object { $_ -match '/\.claude-plugin/types/' }).Count -eq 0) 'generated host and private MCP declarations are excluded'
     Assert (@($names | Where-Object { $_ -match '/(?:\.git|dist)/|/\.env$|/private-note\.txt$' }).Count -eq 0) 'Git metadata, local secrets, unrelated root files and build artifacts are excluded'
     foreach ($entry in $archive.Entries) {
@@ -63,10 +63,12 @@ try {
     Assert ($payloadNames -contains 'scripts/doctor.ps1') 'standalone payload contains external doctor'
     Assert ($payloadNames -contains 'scripts/benchmark.ps1' -and $payloadNames -contains 'benchmarks/acceptance.ps1') 'installed package can run the reproducible benchmark'
     Assert ($payloadNames -contains 'plugins/prodev/hooks/register.js') 'standalone payload contains the executable mod'
+    Assert ($payloadNames -contains 'plugins/prodev/agents/advisor.md' -and $payloadNames -contains 'plugins/prodev/agents/executor.md') 'standalone payload includes both workflow agent roles'
+    Assert ($payloadNames -contains 'plugins/prodev/skills/advisor/SKILL.md' -and $payloadNames -contains 'plugins/prodev/skills/team/SKILL.md') 'standalone payload includes advisor and team commands'
     Assert (@($payloadNames | Where-Object { $_ -match '(^|/)(\.git|dist)/|(^|/)\.env$|(^|/)install\.ps1$' }).Count -eq 0) 'payload excludes Git metadata, secrets and recursive installer embedding'
 } finally { $payload.Dispose(); $memory.Dispose() }
 foreach ($line in (Get-Content -LiteralPath (Join-Path $dist 'SHA256SUMS.txt'))) {
-    Assert ($line -match '^([a-f0-9]{64})  (install\.ps1|claude-pro-dev-v0\.2\.0\.zip)$') 'checksum line describes an expected release asset'
+    Assert ($line -match '^([a-f0-9]{64})  (install\.ps1|claude-pro-dev-v0\.3\.0\.zip)$') 'checksum line describes an expected release asset'
     $expectedDigest = $Matches[1]
     $asset = Join-Path $dist $Matches[2]
     Assert ((Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant() -eq $expectedDigest) 'published checksum matches its asset'

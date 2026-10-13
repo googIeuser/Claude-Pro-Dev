@@ -1,180 +1,132 @@
-# Claude Pro Dev v0.2
+# Claude Pro Dev
 
-[English README](README.md) · [Benchmark](docs/BENCHMARK.tr.md) · [GitHub yayınlama](docs/PUBLISHING.md)
+**Claude aboneliğinle daha düzenli geliştirme yapmanı sağlayan küçük bir Claude Code eklentisi.**
 
-Proje sahibi: [googIeuser](https://github.com/googIeuser). [CI durumu](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml).
+[English](README.md) · [Katkıda bulunma](CONTRIBUTING.md) · [MIT lisansı](LICENSE)
 
-Windows PowerShell 5.1+ ve Claude Code **2.1.287+** için tek plugin başlangıç paketi. Node.js, npm, Python, MCP sunucusu ve üçüncü taraf UI paketi gerektirmez. Claude Code oturum açma işlemini kullanıcı yapar.
+Pro Dev; kullanım göstergesi, yerel yardımcı komutlar, **Sonnet uygulayıcı + Opus danışman** akışı ve isteğe bağlı **Agent Teams** desteği ekler. Claude Code'a abonelik hesabınla giriş yapman yeterli. Bu eklenti için ayrı API anahtarı, API sunucusu, proxy veya ücretli API entegrasyonu gerekmez.
 
-v0.2 doctor, gerçek çıkış koduna dayanan doğrulama kayıtları ve çalıştırılabilir A/B pilotu ekler. Claude 2.1.289 ile canlı CLI testleri yapıldı; abonelik tasarrufu kanıtlanmış değil. [Doğrulama kaydı](docs/VERIFICATION.md) ve [pilot sonuçları](docs/PILOT.md).
+Sürüm **0.3.0** · Windows PowerShell **5.1+** · Claude Code **2.1.287+**. Deneysel ekip özellikleri için güncel Claude Code kullan. [googIeuser](https://github.com/googIeuser) tarafından geliştirilen bağımsız topluluk projesidir; Anthropic ile bağlantılı değildir.
 
-## Tek komutla kurulum
+## 1. Kurulum
 
-PowerShell'de doğrudan GitHub kaynağından kurun:
+[Claude Code'u kur](https://code.claude.com/docs/en/setup), `claude --version` komutunu kontrol et ve `claude auth login` ile abonelik hesabına giriş yap.
+
+Repoyu indirip PowerShell'de kur:
+
+```powershell
+git clone https://github.com/googIeuser/Claude-Pro-Dev.git
+Set-Location .\Claude-Pro-Dev
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+Ya da varsayılan daldaki bağımsız kurulum dosyasını kullan:
 
 ```powershell
 irm 'https://raw.githubusercontent.com/googIeuser/Claude-Pro-Dev/main/install.ps1' | iex
 ```
 
-Önce kurucuyu incelemek isterseniz repodaki `install.ps1` dosyasını indirin veya kaynak ZIP'ini açın. Dosyanın klasöründe:
+İndirip çalıştırma komutu repo kodunu yürütür; tercih edersen `install.ps1` dosyasını önce indirip incele. Yönetici yetkisi, npm, Python ve ayrı MCP sunucusu gerekmez.
+
+Deneysel Agent Teams desteğini kurulumda açmak için:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -EnableAgentTeams
 ```
 
-`install.ps1` kendinden yeterlidir: plugin dosyalarının sıkıştırılmış kopyasını içerir. İndirilen **tek dosya** ile de aynı komut çalışır. Yanında paket varsa yerel dosyaları, yoksa gömülü paketi kullanır. Yönetici yetkisi gerekmez. `ExecutionPolicy Bypass` yalnız bu PowerShell sürecine uygulanır.
+Claude Code'u proje klasöründe yeniden başlat. Önce `/plugin`, ardından `/prodev` ile kontrol et.
 
-Belirli sürümü kurmak için [Releases sayfasında](https://github.com/googIeuser/Claude-Pro-Dev/releases) **v0.2.0 yayımlandıktan sonra** şu adresi kullanın:
+## 2. Çalışma şeklini seç
+
+| Yapacağın iş | Kullan | Ne olur? |
+| --- | --- | --- |
+| Küçük düzeltme veya günlük geliştirme | Normal promptun | Mevcut modelin kısa Pro Dev mühendislik talimatlarıyla çalışır. |
+| Karmaşık değişiklik veya zor hata | `/prodev:advisor <görev>` | Bu turu Sonnet yürütür; gerektiğinde salt okunur Opus danışmanından görüş alır. |
+| Modüllerde bağımsız işler | `/prodev:team <görev>` | Lider, ayrı görev ve dosya sahipliğiyle küçük bir yerel ajan ekibi koordine eder. |
+| Kullanım veya tanılama | `/prodev`, `/prodev-doctor` | Yerel yardımcılar model isteği başlatmadan mevcut okumaları gösterir. |
+
+### Danışman örneği
+
+```text
+/prodev:advisor Oturum yenileme hatasını düzelt. Kodu incele, yaklaşım için danışmandan görüş al, düzeltmeyi uygula ve etkilenen testleri çalıştır.
+```
+
+Uygulayıcı kodu okur, karmaşık işlerde `prodev:advisor` ajanına danışır, sonra değişikliği kendisi uygular ve doğrular. Takıldığı nokta veya zor son inceleme için ikinci danışma yapılabilir. Basit görevlerde danışman çağrısı atlanabilir.
+
+Bu akış, [advisor yaklaşımını](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) [Claude Code alt ajanlarıyla](https://code.claude.com/docs/en/sub-agents) uyarlar. Platformdaki gerçek Advisor Tool bir API özelliğidir; bu eklenti normal Claude Code ajanlarını kullanır. Danışman, kendisine aktarılan görev bağlamını ve ilgili dosyaları görür; konuşmanın tamamı otomatik aktarılmaz.
+
+Komut o tur için Sonnet ister; sonraki promptta oturum modelin geri gelir. Danışman Opus ister. Gerçekte kullanılabilen modeller aboneliğine ve ortam kısıtlamalarına bağlıdır. Model veya ajan kullanılamıyorsa akış bunu belirtip mevcut seçenekle dürüstçe devam etmelidir. Genel model ve effort ayarın korunur.
+
+### Agent Teams örneği
+
+```text
+/prodev:team Ayarlar ekranını ve testlerini geliştir. İki Sonnet ekip üyesine ayrı dosyalar ver, bulguları koordine et, sonunda birleşik değişiklikleri doğrula.
+```
+
+Ekip desteği **etkileşimli oturum başlamadan önce** açılmalıdır. Kurulum seçeneği kullanıcı ayarlarına `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` yazar. Sadece başlatacağın oturum için alternatif:
 
 ```powershell
-# v0.2.0 release yayımlanmış olmalı.
-irm 'https://github.com/googIeuser/Claude-Pro-Dev/releases/download/v0.2.0/install.ps1' | iex
+$env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1'
+claude
 ```
 
-`main` adresi kaynak güncellemelerini izler; release adresi belirli bir sürümü kurar. Gömülü payload ayrı dosya indirmez. Payload SHA256 kontrolü bozulmayı yakalar; scriptin yayıncısını doğrulamaz. Builder'ın ürettiği installer ve ZIP için bağımsız SHA256 değerleri `dist\SHA256SUMS.txt` içindedir; release yayımlanırsa aynı dosya indirmelere eklenir.
+Ekibi, mesajları ve görevleri Claude Code yönetir. Pro Dev; tekrar kullanılabilen `prodev:executor` (Sonnet), `prodev:advisor` (salt okunur Opus) rollerini ve koordinasyon akışını sağlar. Varsayılan ekip küçüktür; aynı dosyadaki veya sıralı işler tek oturumda yürütülmelidir. Windows'ta varsayılan in-process görünüm için tmux gerekmez.
 
-Kurucu Claude sürümünü kontrol eder, mevcut JSON ayarlarını doğrular, ayarların yedeğini alır, paketi `%USERPROFILE%\.claude\prodev\package` altına kopyalar, yerel marketplace'i ekler ve **`prodev@claude-pro-dev-local`** pluginini kullanıcı kapsamında kurar. Var olan model, izin, status line ve `CLAUDE.md` içeriği korunur; plugin ayarlarını Claude'un resmi CLI'si birleştirir. `CLAUDE_CONFIG_DIR` varsa o dizin kullanılır. Başarısız kurulumda ayar dosyaları ve önceki paket geri yüklenir; oluşturulmuş fakat kayıtlı olmayan cache dosyaları kalabilir. Kurulum sırasında başka bir Claude sürecinin ayarları yazmaması önerilir.
+Ekip özelliği deneyseldir ve `claude -p` modunda çalışmaz. Özellik kullanılamıyorsa bu açıkça belirtilmelidir; normal alt ajanlar alternatif olabilir fakat yerel ekip olarak gösterilmemelidir. Güncel sınırlar ve kontroller için [resmî Agent Teams belgesine](https://code.claude.com/docs/en/agent-teams) bak.
 
-## Claude içinde kullanın
+**Advisor ve team akışları abonelik kotanı kullanır.** Ek ajanlar tüketimi artırabilir. Pro Dev tasarruf garantisi vermez, model erişimi açmaz ve hesap limitlerini yükseltmez.
 
-PowerShell kurucusu otomatik context sıkıştırmasını kapatır (`autoCompactEnabled: false`) ve önceki 120.000 token eşiği dahil özel `autoCompactWindow` ayarını kaldırır. Kurulumdan sonra Claude Code'u yeniden başlatın; gerektiğinde `/compact` komutunu manuel çalıştırın. Bu değişiklik kurucunun kullandığı Claude kullanıcı ayarlarına uygulanır ve projeler arasında geçerlidir. Yalnız marketplace üzerinden plugin kurmak bu ayarları değiştirmez. Kurulum başarısız olursa önceki ayarlar yedekten geri yüklenir.
+## 3. Yerel yardımcı komutlar
 
-Başka bir marketplace'ten kullanıcı kapsamında kurulmuş ve etkin bir `prodev` varsa, `/prodev` komut çakışmasını önlemek için kurucu onu devre dışı bırakır ve yeni paketi etkinleştirir. Eski plugin dosyaları silinmez. `agent-flow`, `prodev-queue`, `prodev-mermaid` ve diğer pluginler etkinlik durumlarını korur. Kurulum hatayla biterse önceki `prodev` etkinliği de yedekten geri yüklenir.
+Bu sekiz komut deterministiktir ve model turu başlatmaz. Yukarıdaki iki akış komutu model kullanır.
 
-Yeni bir oturum açın; açık oturumda `/reload-plugins` çalıştırın. Yeni core kuralları için yeni oturum veya `/clear` kullanın. `/plugin` içinde `prodev` aktif görünmelidir. Güvenilir bir çalışma klasörü ve oturum açmış Claude hesabı gerekir.
+| Komut | İşlevi |
+| --- | --- |
+| `/prodev` | Kullanım, sayaçlar ve komut özeti. |
+| `/prodev-doctor` | Yüklenen hook'lar, komut çakışmaları ve eksik okumalar. |
+| `/prodev-queue add <metin>` | Görevi başlatmadan kuyruğa ekler. |
+| `/prodev-queue list` / `draft <id>` / `remove <id>` / `clear` | Kuyruğu yönetir. `draft` prompt alanını doldurur; göndermek için Enter'a sen basarsın. |
+| `/prodev-flow [mermaid]` | Gözlenen ajan etkinliği; ekip yöneticisi değildir. |
+| `/prodev-next` | Basit sonraki adım önerileri. |
+| `/prodev-checks [profile \| run <ad>]` | Doğrulama kayıtları veya açıkça seçtiğin proje kontrolü. |
+| `/prodev-report` | Prompt ve araç gövdeleri olmadan JSON oturum metrikleri. |
+| `/prodev-filter on` / `off` | Uzun shell/MCP çıktısını kısaltmayı açar/kapatır. Çıktıdaki hassas veri maskelemesi açık kalır. |
 
-v0.1'den yükseltmek için aynı kurucuyu tekrar çalıştırın; eski cache sürümü gerektiğinde resmi CLI ile güncellenir. Checklist skill'i `/prodev:engineering` olarak adlandırıldı; önceki `/prodev` durum komutuyla çakışma giderildi.
+5 saatlik ve 7 günlük kullanım okumaları Claude Code'dan gelir. Okuma yoksa `unknown` gösterilir. Bağlam doluluğu ve önbellek oranı ayrı ölçümlerdir; kalan kota değildir. Kuyruk, doğrulama kayıtları ve sayaçlar oturum bitince kaybolur.
 
-## Komutlar nasıl kullanılır?
+Tanımlı kontroller için [örneği](docs/prodev.example.json) çalışma klasörüne `.prodev.json` olarak kopyala ve programları önce incele. Hiçbir kontrol otomatik çalışmaz. `/prodev-checks run <ad>` programı Windows kullanıcının yetkileriyle yürütür. Çalıştırma ve kayıt sınırları için [proje kontrollerine](docs/PROJECT-CHECKS.md) bak.
 
-Bu komutları tek tek **Claude Code'un giriş kutusuna** yazın. PowerShell komutu değildir.
+## Kurulum değişiklikleri ve kaldırma
 
-| Komut | Ne işe yarar? | Ne zaman kullanılır? |
-|---|---|---|
-| `/prodev` | Claude'un son sağladığı 5 saatlik/haftalık kullanımı, gözlenen cache/context verilerini ve etkinlik sayaçlarını gösterir. | İşe başlamadan veya iş bittikten sonra kullanımı kontrol etmek için. |
-| `/prodev-doctor` | Hangi hook'ların gözlendiğini, kaç helper kaydolduğunu, komut çakışmalarını ve guard/filter ayarlarını gösterir. | Kurulum sonrası yüklenmeyi veya eksik ölçümleri incelemek için. Bir olayın henüz gözlenmemesi hook'un bozuk olduğu anlamına gelmez. |
-| `/prodev-checks` | Gözlenen kontrol sonuçlarını PASS / FAIL / UNKNOWN olarak listeler; eski sonuçları belirtir. | Değişiklikten sonra hangi doğrulamanın gerçekten çalıştığını görmek için. |
-| `/prodev-checks profile` | Çalışma klasöründeki `.prodev.json` kontrollerini okur ve listeler; hiçbirini çalıştırmaz. | Kullanılabilir kontrolleri ve program argümanlarını incelemek için. |
-| `/prodev-checks run <name>` | Yapılandırılmış bir kontrolü açıkça çalıştırır ve çıkış kodunu kaydeder. Örnek: `/prodev-checks run unit`. | Profil ve script'i inceledikten sonra bir kontrol çalıştırmak için. [Proje kontrolleri](#proje-kontrolleri-ve-güvenilir-kayıt) bölümüne bakın. |
-| `/prodev-report` | Sayaçları, tamamlanmış turların token verilerini ve kontrol kayıtlarını JSON olarak gösterir; prompt, komut argümanı ve tool çıktısı içermez. | Oturumu ayrıntılı incelemek veya karşılaştırma için ölçümleri kopyalamak için. Plugin rapor dosyası kaydetmez. |
-| `/prodev-queue` | Bekleyen işleri listeler; `/prodev-queue list` ile aynıdır. | Claude çalışırken sonraki işleri el altında tutmak için. Alt komutlar aşağıda. |
-| `/prodev-flow` | Bu oturumda gözlenen agent'ların ilişkilerini ve durumlarını gösterir. | Agent etkinliğini incelemek için. Yeni agent başlatmaz. |
-| `/prodev-flow mermaid` | Aynı agent ağacını Mermaid metni olarak verir. | Grafiği bir Markdown belgesine veya Mermaid görüntüleyicisine kopyalamak için. |
-| `/prodev-next` | Yerel etkinliğe, başarısız kontrollere ve kuyruğa göre 2–3 sonraki adım önerir. | İş bittikten sonra kısa bir takip listesi almak için; model isteği göndermez. |
-| `/prodev-filter on` / `/prodev-filter off` | Bu oturumda uzun shell ve MCP metinlerini kısaltmayı açar/kapatır; varsayılan açıktır. | Uzun bir sonuçta atlanan ayrıntıları incelemek için kapatılabilir. Secret redaction devam eder. |
-| `/prodev-guard on` / `/prodev-guard off` | Bu oturumda tanınan yıkıcı komutları kontrol etmeyi açar/kapatır; varsayılan açıktır. | Bilerek izin verdiğiniz bir işlem için geçici kapatıp ardından tekrar açmak için. Secret kontrolleri ve modelin normal tool izinleri devam eder. |
-| `/prodev:engineering` | Claude modelini kullanarak isteğe bağlı kısa mühendislik checklist skill'ini çalıştırır. | Odaklı mühendislik rehberliğini açıkça istemek için. Normal Claude kullanımı tüketir. |
+- `prodev@claude-pro-dev-local` eklentisini kullanıcı kapsamına, `%USERPROFILE%\.claude\prodev\package` veya mevcut `CLAUDE_CONFIG_DIR` altına kaydeder.
+- Ayarları ve önceki paketi yedekler; kurulum başarısız olursa geri yükler.
+- Otomatik bağlam sıkıştırmayı kapatır, eski özel eşiği kaldırır. Yeniden başlat ve gerektiğinde `/compact` kullan.
+- Model, effort, izinler, diğer ortam ayarları ve proje talimatlarını korur. `-EnableAgentTeams` ekip bayrağını açar; normal kurulum mevcut değerini korur.
+- Başka marketplace'teki çakışan kullanıcı kapsamlı `prodev` eklentilerini kapatır; dosyalarını tutar.
 
-### Kuyruk komutları
+Sürüm 0.3, eski komut/dosya adı guard'ını ve `/prodev-guard` komutunu kaldırır. Pro Dev anahtar kelimelere göre araç çağrısı reddetmez. Claude Code'un kendi izin kontrolleri çalışmaya devam eder. Çıktıda hassas veri maskelemesi korunur; eksiksiz gizlilik koruması sağlamaz. Filtre kanıt atlayabilir; gerektiğinde hedefli çıktı al veya filtreyi kapat.
 
-| Komut | Ne işe yarar? |
-|---|---|
-| `/prodev-queue add Parser testlerini incele` | İşi ekler ve örneğin `#1` numarasını verir. Otomatik çalıştırma yoktur. |
-| `/prodev-queue list` | İşlerin numaralarını ve metinlerini gösterir. |
-| `/prodev-queue draft 1` | Giriş kutusundaki mevcut metnin yerine #1'i koyar. İnceleyip Enter ile gönderin. İş kuyrukta kalır. |
-| `/prodev-queue remove 1` | #1'i çalıştırmadan kuyruktan siler. |
-| `/prodev-queue clear` | Bekleyen bütün işleri çalıştırmadan siler. |
-
-Kuyruk en fazla 20 iş tutar; her iş en fazla 4.000 karakter olabilir. `draft` için düzenlenebilir giriş kutusu gerekir; headless modda bunun bulunmadığı belirtilir. Helper komutları doğrudan Mods kodunu çalıştırır ve model isteği göndermez. `/prodev:engineering` skill'i ve kuyruğa alınmış bir işi Enter ile gönderme normal Claude kullanımı tüketir. Kuyruk, agent geçmişi ve sayaçlar plugin yeniden yüklenince veya süreç kapanınca sıfırlanır; kalıcı tutulmaz.
-
-### Durum çıktısı ne anlama geliyor?
-
-- `5h: 3% used`, Claude'un 5 saatlik limitinin %3'ünün; `7d: 20% used`, haftalık limitinin %20'sinin kullanıldığını söyler. Bunlar hesap kullanım verileridir; Pro Dev'in sağladığı tasarruf yüzdesi değildir.
-- `cache`, gözlenen tamamlanmış turlardaki cache okuma payıdır. `context`, Claude'un sağladığı bağlam kullanım yüzdesidir. `unknown`, ilgili ölçümün bulunmadığını belirtir; yüzde tahmin edilmez.
-- `tools` gözlenen araç denemelerini, `repeat reads` tekrarlanan Read/Grep/Glob isteklerini, `agents` gözlenen ve hâlâ çalışan agent'ları sayar. `queue` bekleyen işleri, `filtered` kısaltılan sonuçları, `blocked` engellemeleri sayar. Yeni oturumda sıfır olmaları normaldir.
-- `observed input`, `cache read`, `cache write` ve `output`, pluginin gözlediği tamamlanmış turlarda bildirilen token toplamlarıdır. `checks: 0 current pass`, mevcut gözlenen revision için çıkış kodu sıfır olan bir kontrol kaydı bulunmadığını söyler. UNKNOWN ve eski kayıtlar güncel başarı sayılmaz.
-
-İlk oturumda `/prodev-doctor`, ardından `/prodev` çalıştırın. Normal bir kod görevini tamamladıktan sonra `/prodev-checks`, `/prodev-report` ve `/prodev-next` ile doğrulamayı, etkinliği ve olası sonraki işleri inceleyin. Yapılandırılmış kontroller için incelenmiş bir `.prodev.json` ve açıkça seçilen `/prodev-checks run <name>` gerekir.
-
-## Neler hazır?
-
-- **Senior Engineer Core:** `hooks/policy.js` içindeki kısa, sabit kurallar ilk bağlama bir kez eklenir. En küçük doğru değişiklik, dar arama, önceki okumaları kullanma, az ve anlamlı doğrulama, kısa cevap ve ihtiyaca göre delegation davranışını teşvik eder.
-- **Usage/cache HUD:** Terminal ve Claude Desktop Code sekmesinde giriş üstünde iki satır. 5h ve 7d alanları host'un en son sağladığı gerçek limit yüzdeleridir. Veri yoksa `unknown`; context ayrı alandadır. Reset tarihi bantta gösterilmez.
-- **Cache oranı:** Gözlenen tamamlanmış turn'lerde `cache_read / (input + cache_read + cache_creation)`. Token tasarrufu veya abonelikten kalan miktar değildir. Plugin yüklenmeden önceki kullanım dahil değildir; devam eden turn sırasında tamamlanmış turn'lerin verisini gösterir.
-- **Agent flow:** Bu plugin agent başlatmaz; var olan spawn/complete olaylarını izler. Geçmiş en fazla 128 agent kaydıdır. Adımlar ve full agent çıktıları saklanmaz.
-- **Tool-output filtering:** Bash/PowerShell stdout/stderr ve MCP text alanları varsayılan olarak en fazla 12.000 karaktere kısaltılır. Önce hata satırları, sonra çevresindeki stack/assertion ayrıntıları ve baş/son örnekleri korunur. Atlanan aralıklar ve kesilen satırlar belirtilir. Kaynak okuma/arama ile MCP structuredContent kısaltılmaz; çıkış metadata'sı korunur. Host'un daha önce kestiği veya anahtar kelime taşımayan kanıtlar kaybolabilir.
-- **Safety iskeleti:** Hard reset, force push, git clean, recursive silme ve DROP/TRUNCATE için açık komut kalıplarını engeller. Claude'un normal izin kontrolünü atlamaz. Güvenlik kapatılınca secret kontrolleri sürer.
-- **Secret iskeleti:** `.env`, bazı credential/private-key dosya adlarını doğrudan araç erişiminde engeller. Tool sonuçlarındaki bilinen API key, token, password, authorization, JWT ve private-key kalıplarını maskeler. Raw log yedeği yazmaz.
-
-Koruma **heuristic bir başlangıçtır**: shell parser, dosya erişim sandbox'ı veya tam DLP değildir. Alias, symlink, encoded komut, başka modlar, tool input'ları, user prompt'ları, debug logları, tool'ların kendi disk yazıları ve önceki transcript verileri kapsam dışındadır. Secret dosya adları otomatik örnek dosya istisnaları dışında bloklanır; `.key` gibi adlar yanlış pozitif üretebilir. Belirsiz veya yüksek riskli migration için yerel proje kuralları ve Claude'un izin sistemi kullanılmalıdır.
-
-## Proje kontrolleri ve güvenilir kayıt
-
-Güvenilir projenin çalışma klasöründe `.prodev.json` oluşturun; [PowerShell örneği](docs/prodev.example.json) ve [alan açıklamaları](docs/PROJECT-CHECKS.md):
-
-```json
-{"version":1,"checks":[{"name":"unit","argv":["powershell.exe","-NoProfile","-File","./tests.ps1"],"timeoutMs":30000}]}
-```
-
-Dosyayı inceleyin, ardından `/prodev-checks run unit` ile seçtiğiniz programı açıkça çalıştırın. Otomatik çalıştırma yoktur. Native Mods process API'si programı Windows kullanıcınızın yetkileriyle, araya shell koymadan çalıştırır; proje script'i istediği işlemi yapabilir. Bu yüzden yalnız incelediğiniz kontrolleri seçin. Modelin tool izinleri korunur; bu kullanıcı komutu ayrı process API'sini kullanır.
-
-PASS için gözlenen çıkış kodu sıfır olmalı. Kod yoksa UNKNOWN; hata ayrı gösterilir. Sonraki edit/shell/MCP etkinliği eski kayıtları temkinli biçimde `stale` yapar. PASS tek programın çıkışını doğrular; test kalitesini veya bütün projenin doğruluğunu garanti etmez. Oturum dışındaki dosya değişiklikleri izlenmez; son 50 kayıt bellekte tutulur.
-
-Mod hiç yüklenmiyorsa Claude dışında çalıştırın:
+Kapatmak veya kaldırmak için:
 
 ```powershell
-& "$env:USERPROFILE\.claude\prodev\package\scripts\doctor.ps1"
+claude plugin disable prodev@claude-pro-dev-local --scope user
+claude plugin uninstall prodev@claude-pro-dev-local --scope user
 ```
 
-`CLAUDE_CONFIG_DIR` kullanıyorsanız o dizini seçin. Doctor model isteği göndermez; hesap bilgilerini ve ayar içeriğini yazdırmaz.
+Kaydedilen sıkıştırma ve ekip tercihleri kaldırma sonrasında kalır. Yedek ayarlarını geri yükle veya `settings.json` dosyasını düzenle: otomatik sıkıştırma için `autoCompactEnabled` değerini `true` yap; yeni oturumlarda ekipleri kapatmak için ekip ortam değişkenini kaldır. Shell'de açtıysan o bayrağı da temizle. Yedekler `.claude\prodev\backups` altında kalır.
 
-## Canlı test ve benchmark
-
-Repo veya kurulu paket klasöründe:
+## Geliştirme ve doğrulama
 
 ```powershell
-.\scripts\live-smoke.ps1 -OutputDirectory "$env:TEMP\prodev-live-benzersiz"
-.\scripts\benchmark.ps1 -RunLive -Repeats 1 -OutputDirectory "$env:TEMP\prodev-pilot-benzersiz"
-```
-
-Çıktı klasörleri yeni olmalı. Live smoke 16 helper sonucu ve gerçek başarılı/başarısız süreçleri model turu başlatmadan sınar. Benchmark her tekrar için hesabınız üzerinden **iki model oturumu** açar; her oturum birden çok API isteği içerebilir. Varsayılan Sonnet/low effort, süreç bazında ayrı plugin ayarları, aynı başlangıç dosyaları ve bağımsız kabul kontrolü kullanılır. CSV/JSON özetlerine raw transcript veya hesap kimliği yazılmaz. API maliyet tahmini abonelik faturanız değildir. [Pilot kaydı](docs/PILOT.md) ve [geniş ölçüm protokolü](docs/BENCHMARK.tr.md).
-
-## Kurulum doğrulama
-
-Paket klasöründe:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1
-claude plugin list --json
+claude plugin validate . --strict
 claude plugin validate .\plugins\prodev --strict
 claude plugin test .\plugins\prodev
+powershell.exe -NoProfile -File .\tests\metrics.Tests.ps1
+powershell.exe -NoProfile -File .\scripts\build-release.ps1
+powershell.exe -NoProfile -File .\tests\release.Tests.ps1
+powershell.exe -NoProfile -File .\tests\install.Tests.ps1
 ```
 
-Gerçek ayarları değiştirmeden kurucu testi:
+Gömülü dosyaları değiştirdikten sonra kökteki `install.ps1` dosyasını yeniden üret. Native testler model hesabı gerektirmez. Model davranışı ve etkileşimli ekipler, giriş yapılmış oturumda denenmelidir; statik doğrulama bunları kanıtlamaz. [Doğrulama kapsamı](docs/VERIFICATION.md) · [Mimari](docs/ARCHITECTURE.tr.md) · [Benchmark](docs/BENCHMARK.tr.md) · [Yayınlama](docs/PUBLISHING.md).
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\install.Tests.ps1
-```
-
-Test geçici bir Claude config dizini kullanır ve inceleme için bırakır. Hook testleri Claude'un kendi engine'inde çalışır; guard, redaction, uzun çıktı, queue, stable context, gerçek ölçüm alanları ve terminal/Desktop render ağacını sınar. Testler model çağırmaz. Bu makinedeki doğrulama **Claude Code 2.1.289**, Windows PowerShell 5.1 ve PowerShell 7 ile yapılır; 2.1.287 üzerindeki canlı hesap/ekran testi ayrıca kullanıcı oturumunda yapılmalıdır.
-
-Kurucu testleri, birden fazla plugin ve marketplace ile önceki `prodev` kurulumu içeren config üzerinde de çalışır. Bu, Windows PowerShell 5.1'in JSON array sonucunu tek pipeline öğesi olarak döndürdüğü durumda plugin listesinin yanlış değerlendirilmesini önler.
-
-## Kaldırma ve sorun giderme
-
-```powershell
-claude plugin disable prodev@claude-pro-dev-local
-claude plugin uninstall prodev@claude-pro-dev-local --scope user
-claude plugin marketplace remove claude-pro-dev-local
-```
-
-Yeni oturum açın veya `/reload-plugins` çalıştırın. Paket ve yedekler `.claude\prodev` altında inceleme için kalır. Core'u temizlemek için yeni oturum veya `/clear` gerekir. `disableAllHooks`, `--safe-mode`, `--bare`, yönetilen kuruluş politikaları veya pluginlerin desteklenmediği Desktop WSL oturumları modun yüklenmesini önleyebilir. VS Code chat ve `claude -p` UI bandını çizmez; hook/komutlar desteklenen hostlarda çalışır.
-
-Yerel kaynak veya indirilen dosya değiştirildiğinde kurucuyu tekrar çalıştırın. Gömülü dağıtımı güncellemek için:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-release.ps1
-```
-
-## Resmi kaynaklar
-
-- [Mods ve 2.1.287 alt sınırı](https://code.claude.com/docs/en/plugins/mods)
-- [Mod oluşturma ve paket yükleme](https://code.claude.com/docs/en/plugins/mods/create)
-- [Event, tool.call ve başarısız hook davranışı](https://code.claude.com/docs/en/plugins/mods/events)
-- [UI yüzeyleri ve diğer modların bandını koruma](https://code.claude.com/docs/en/plugins/mods/interface)
-- [Mods API ve session.usage](https://code.claude.com/docs/en/plugins/mods/api)
-- [Native mod testleri](https://code.claude.com/docs/en/plugins/mods/test)
-
-Mods erken erişim API'sidir. Claude güncellendiğinde mod klasörünü `--plugin-dir` ile yükleyerek kendi sürümünüzün tiplerini üretin ve `validate` / `test` komutlarını tekrar çalıştırın.
-
-GitHub paylaşımı için İngilizce/Türkçe belgeler, katkı ve issue şablonları, CI ve release iş akışları hazırdır. Builder kökteki install.ps1 dosyasını yeniler ve dağıtım dosyalarını git tarafından dışlanan dist/ dizininde oluşturur. GitHub üzerindeki gerçek test sonuçlarını [Actions sayfasından](https://github.com/googIeuser/Claude-Pro-Dev/actions) izleyin. Sürüm yayımlamak için [yayınlama belgesini](docs/PUBLISHING.md) kullanın.
+Eski pilot dosyaları v0.2'nin tarihsel kanıtlarıdır; advisor/team akışlarının sonucu değildir. Abonelik tasarrufu kanıtlanmış değildir.
