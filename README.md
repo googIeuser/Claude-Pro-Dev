@@ -1,18 +1,51 @@
+<div align="center">
+
 # Claude Pro Dev
 
-**A small Claude Code plugin for focused development with your Claude subscription.**
+**Choose your coding worker, ask a specialist, and keep track of the session.**
 
-[Türkçe](README.tr.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[![CI](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml/badge.svg)](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-0.3.1-8b5cf6)
+![Windows](https://img.shields.io/badge/Windows-PowerShell_5.1%2B-0078d4)
+![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.293%2B-f59e0b)
+[![MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 
-Pro Dev adds a usage display, local helper commands, a **selectable executor + advisor** workflow, and optional **Agent Teams**. Defaults are Sonnet for implementation and Opus for advice; Haiku and separate reasoning levels are available. Sign in with your subscription. No separate API key, API server, proxy, or paid API integration is required by this plugin.
+**English** · [Türkçe](README.tr.md)
 
-Version **0.3.1** · Windows PowerShell **5.1+** · Claude Code **2.1.293+** (needed for Haiku 5.5). Update Claude Code with `claude update`. Independent community project by [googIeuser](https://github.com/googIeuser); not affiliated with Anthropic.
+![Pro Dev: coordinator, advisor, executor](docs/assets/workflow.svg)
 
-## 1. Install
+[Get started](#get-started) · [Models & reasoning](#models--reasoning) · [Test results](#what-has-actually-been-tested) · [Commands](#local-commands) · [Troubleshooting](#troubleshooting)
 
-Install [Claude Code](https://code.claude.com/docs/en/setup), check `claude --version`, and sign in with `claude auth login` using your subscription account.
+</div>
 
-Download the repository and run the installer in PowerShell:
+Pro Dev is a Windows plugin for Claude Code. Your current model coordinates the work; an **executor** implements and checks changes, and a read-only **advisor** can help with difficult decisions. Choose Haiku, Sonnet, or Opus and a separate reasoning level for each role. Local commands also show usage, queue tasks, and record checks.
+
+Use your signed-in **Claude subscription**. The plugin requires no separate API key, API server, proxy, npm, Python, or MCP server. Independent community project by [googIeuser](https://github.com/googIeuser).
+
+> [!TIP]
+> New here? Install, restart Claude Code **inside your code project**, then try the three-command example below. The default worker is **Sonnet**, and the default advisor is **Opus**.
+
+## Get started
+
+### 1 · In PowerShell: check Claude Code and install
+
+Install [Claude Code](https://code.claude.com/docs/en/setup) first if needed. Check for updates and sign in with your subscription account:
+
+```powershell
+claude update
+claude --version
+claude auth login
+```
+
+Claude Code **2.1.293+** is required for Haiku 5.5. The latest version offered by the updater on **2026-10-13** was **2.1.296**, which was used for the live tests below.
+
+Install Pro Dev:
+
+```powershell
+irm 'https://raw.githubusercontent.com/googIeuser/Claude-Pro-Dev/main/install.ps1' | iex
+```
+
+This downloads and executes the repository's self-contained installer. To inspect the source before running it:
 
 ```powershell
 git clone https://github.com/googIeuser/Claude-Pro-Dev.git
@@ -20,133 +53,180 @@ Set-Location .\Claude-Pro-Dev
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Or use the self-contained installer from the default branch:
+Administrator access is unnecessary. To update Pro Dev later, run the installer again using a fresh download or updated checkout.
 
-```powershell
-irm 'https://raw.githubusercontent.com/googIeuser/Claude-Pro-Dev/main/install.ps1' | iex
+### 2 · In your project: start a fresh Claude Code session
+
+Open the folder containing the code you want to change, then start `claude`. If a session was already running during installation, close it and start a new one. Inside Claude Code, check `/plugin`, then `/prodev`.
+
+> [!IMPORTANT]
+> Installation saves **manual compaction**: automatic compaction is disabled, so use `/compact` when needed. Settings and the old package are backed up. The optional teams flag is preserved unless you explicitly enable it. [See all installation changes](#installation-settings--removal).
+
+### 3 · Inside Claude Code: choose roles and give a complete task
+
+```text
+/prodev-model executor sonnet medium
+/prodev-model advisor opus high
+/prodev:advisor Fix the parser so negative integers keep their sign. Ask the advisor about the approach, delegate the fix to the executor, and run the parser tests.
 ```
 
-The download-and-run form executes repository code; download and inspect `install.ps1` first if you prefer. Administrator access, npm, Python, and a separate MCP server are unnecessary.
+The first two commands save choices locally without starting a model turn. The third starts the model workflow. Describe the affected behavior and expected result; a bare number such as `31` does not identify a repository issue or task by itself.
 
-To enable experimental Agent Teams during installation:
+## How the workflow works
+
+| Role | Responsibility | Default |
+| --- | --- | --- |
+| Your main session | Understands the request, delegates, and reports the result. | Your current model |
+| `prodev:advisor` | Reads relevant code and recommends an approach; cannot edit or run shell commands. | Opus |
+| `prodev:executor` | Implements the assigned change and verifies it. | Sonnet |
+
+Use **`/prodev:advisor <task>`** for difficult bugs or changes that benefit from a second opinion. The advisor is optional for obvious tasks and may be consulted again for a blocker or difficult review. Your main session keeps its model; role choices apply to delegated agents.
+
+This adapts Anthropic's [advisor pattern](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) using [Claude Code subagents](https://code.claude.com/docs/en/sub-agents). The platform Advisor Tool itself is an API feature. Pro Dev implements the pattern through Claude Code agents and your signed-in session. The advisor receives the supplied context and relevant files, rather than an automatic copy of the full conversation.
+
+For ordinary development, you can still write a normal prompt. Pro Dev supplies short engineering guidance; `/prodev:engineering` is also available as an optional checklist.
+
+## Models & reasoning
+
+### Pick a model, or let the workflow choose
+
+| Goal | Command inside Claude Code |
+| --- | --- |
+| Give a narrow, well-defined task to Haiku | `/prodev-model executor haiku low` |
+| Use Sonnet for implementation | `/prodev-model executor sonnet medium` |
+| Ask Opus for deeper advice | `/prodev-model advisor opus high` |
+| Let the workflow choose Haiku or Sonnet per assignment | `/prodev-model executor auto medium` |
+| Follow the parent model and effort | `/prodev-model executor inherit inherit` |
+| Show current choices | `/prodev-model` |
+| Restore Sonnet worker / Opus advisor defaults | `/prodev-model reset` |
+
+`auto` gives the workflow this guidance: choose **Haiku for narrow, clearly specified work** and **Sonnet for complex, ambiguous, or multi-file work**. It announces the choice before delegation. This is prompt guidance, rather than a deterministic classifier or quota optimizer.
+
+Both roles accept `haiku`, `sonnet`, `opus`, `inherit`, or the exact IDs `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`. Aliases follow Claude Code's resolution; an exact ID requests that version. `auto` is available only for the executor.
+
+### Set each role's reasoning effort
+
+Available values: **`low` · `medium` · `high` · `xhigh` · `max` · `inherit`**.
+
+Start with `medium` for implementation and `high` for a difficult advisory question, then adjust to the task. Higher effort can use more allowance and time. The same label does not mean equal thinking across models. An omitted effort resets that role to `inherit`, which follows the caller/host setting.
+
+> [!NOTE]
+> Choices are **session-only** and apply to **new Pro Dev agents**. Existing agents retain their settings; other agents and your global model settings are unaffected. Reloading/exiting clears the choices. Use native `/model` and `/effort` to change your main session.
+
+Inspect worker details in `/tasks`. Model availability, host policy, environment overrides, and capability limits can take precedence. The 5.5 models use adaptive reasoning; this plugin provides no supported per-agent thinking-off switch. [Official model configuration](https://code.claude.com/docs/en/model-config).
+
+## What has actually been tested?
+
+**Recorded on 2026-10-13 · Pro Dev 0.3.1 · local Claude Code 2.1.296 · Windows.**
+
+| Status | Test | Observed result |
+| --- | --- | --- |
+| 🟢 Passed | Claude Code updater | Installed 2.1.296 was already up to date. |
+| 🟢 Passed | Native plugin tests | **55 passed, 0 failed**; includes model choices, effort forwarding, filtering, queue, and receipts. |
+| 🟢 Passed | Real CLI helper smoke | **20 helper results, 0 model turns**; nine helpers and both role/workflow definitions discovered. |
+| 🟢 Passed | Live Haiku executor | Haiku 5.5 with requested `low` effort returned **323** for the small arithmetic task. |
+| 🟢 Passed | Live Sonnet advisor + executor | Separate requested `high` / `medium` effort; arithmetic result **437**. |
+| 🟢 Passed | Live `auto` selection | Selected Haiku for a narrow arithmetic task; result **91**. |
+| 🟢 Passed | **Live Opus advisor + Sonnet coding worker** | Fixed a signed-integer parser bug. **6 independent acceptance cases passed**; the original bug failed beforehand, and the supplied check file stayed unchanged. |
+| 🟢 Passed | Installer & release checks | Isolated installation, upgrade, rollback, packaging integrity, and reproducibility checked in PowerShell **5.1 and 7**. |
+| 🟡 Not live-tested | Native interactive Agent Teams | Workflow/role discovery and teams configuration were checked; actual teammate coordination was not exercised. |
+| ⚪ Not measured | Savings, general code quality, effective reasoning budget | No conclusion from these small tests. |
+
+Actual live model IDs were reported by Claude Code. Effort evidence is the **requested Agent invocation arguments**; provider reasoning budgets were not measured. The coding result is one isolated bugfix, not a general coding benchmark. A failed initial calibration is recorded separately from the passing arithmetic cases.
+
+[Detailed verification](docs/VERIFICATION.md) · [Arithmetic evidence](docs/live-model-smoke.json) · [Coding evidence](docs/live-coding-smoke.json) · [CI matrix: 2.1.293 / 2.1.296 × two shells](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
+
+## Optional: Agent Teams
+
+Use **`/prodev:team <task>`** when work can be divided across independent files or modules. A small team is the default. Keep sequential work or changes to the same file in one session.
+
+Enable teams **before starting an interactive session**. From the downloaded repository, the installer can save the setting:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -EnableAgentTeams
 ```
 
-Restart Claude Code in your project folder. Check `/plugin`, then `/prodev`.
-
-## 2. Choose how to work
-
-| Your task | Use | What happens |
-| --- | --- | --- |
-| A small fix or ordinary development | Your normal prompt | Your current model uses the short Pro Dev engineering guidance. |
-| A complex change or difficult bug | `/prodev:advisor <task>` | Your session model coordinates an implementation worker and optional read-only advisor. |
-| Independent work across modules | `/prodev:team <task>` | The lead coordinates a small native team with separate assignments and file ownership. |
-| Usage or diagnostics | `/prodev`, `/prodev-doctor` | Local helpers show host readings without starting a model request. |
-
-### Advisor example
-
-```text
-/prodev:advisor Fix the session refresh bug. Inspect the code, consult the advisor about the approach, implement the fix, and run the affected tests.
-```
-
-Your main session coordinates `prodev:executor` for implementation and verification, with `prodev:advisor` consulted for complex work. A second consultation can help with a blocker or difficult final review. Obvious tasks can skip the advisor. The extra coordinator/delegation can add usage and latency.
-
-This adapts the [advisor pattern](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) with [Claude Code subagents](https://code.claude.com/docs/en/sub-agents). The platform's actual Advisor Tool is an API feature; this plugin uses ordinary Claude Code agents instead. The advisor gets the supplied task context and relevant files, not an automatic copy of the complete conversation.
-
-The main session keeps your current model. Worker/advisor choices are described below. Actual availability depends on your subscription and host restrictions. If a model or agent is unavailable, the workflow must report that and label any fallback honestly. Global model and effort settings are preserved.
-
-### Choose models and reasoning
-
-Set choices before invoking either workflow:
-
-```text
-/prodev-model executor haiku low
-/prodev-model advisor opus high
-/prodev:advisor Fix the parser's empty-input case and run its tests.
-```
-
-Or let the workflow choose the implementation model for each assignment:
-
-```text
-/prodev-model executor auto medium
-/prodev:team Review the parser and improve its tests in separate files.
-```
-
-`auto` is the workflow's model-selection guidance: Haiku for narrow, clearly specified assignments; Sonnet for complex, ambiguous, or multi-file work. It is not a separate classifier, quota optimizer, or guarantee of which model is available. The chosen model is announced before delegation.
-
-| Choice | Values |
-| --- | --- |
-| Role | `executor`, `advisor` |
-| Model | `haiku`, `sonnet`, `opus`, `inherit`, or explicit `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` |
-| Automatic routing | `auto`, for executor only |
-| Reasoning effort | `low`, `medium`, `high`, `xhigh`, `max`, `inherit` |
-
-Omitted effort means `inherit`, preserving the caller/host setting. `inherit` model follows the parent model. Aliases follow host resolution; explicit IDs request that exact version. `/prodev-model` shows choices, and `/prodev-model reset` restores Sonnet/Opus defaults with inherited effort. Choices apply to **new Pro Dev agents in this session**, disappear on reload/exit, and do not affect unrelated agents. Existing agents keep their settings. A new model command without effort resets that role's effort to inherit.
-
-Use native `/model` and `/effort` for your main session. Check effective worker model/effort in `/tasks`; host policy, environment overrides, and model capability limits can take precedence. Use in-process teams for individual effort control; split-pane behavior varies by host. The 5.5 models use adaptive reasoning: there is no supported per-agent thinking-off switch here. Higher effort can consume more allowance; equal effort labels do not imply equal thinking across models. [Official model configuration](https://code.claude.com/docs/en/model-config).
-
-### Agent Teams example
-
-```text
-/prodev:team Improve the settings screen and its tests. Assign separate files to two Sonnet teammates, coordinate findings, then verify the combined changes.
-```
-
-Teams must be enabled **before an interactive session starts**. The installer switch saves `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in user settings. For a one-session alternative:
+Or enable it only in the current PowerShell environment:
 
 ```powershell
 $env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1'
 claude
 ```
 
-Claude Code manages team creation, messages, and tasks. Pro Dev supplies reusable `prodev:executor` (Sonnet) and `prodev:advisor` (read-only Opus) roles and a coordination workflow. The default team is small; same-file or sequential work should stay in one session. On Windows, the default in-process display needs no tmux.
+Then, inside Claude Code:
 
-Teams are experimental and unavailable in `claude -p` mode. An unavailable team feature must be reported; ordinary subagents are a fallback, not a native team. See [official Agent Teams documentation](https://code.claude.com/docs/en/agent-teams) for current limitations and controls.
+```text
+/prodev-model executor sonnet medium
+/prodev:team Improve the settings screen and its tests. Assign separate files to two teammates, share findings, and verify the combined changes.
+```
 
-**Advisor and team workflows consume your subscription allowance.** Extra agents can increase usage. Pro Dev does not guarantee savings, unlock models, or raise account limits.
+> [!WARNING]
+> Teams are **experimental and not live-tested in this release**. They need an interactive session and are unavailable in `claude -p`. Windows' in-process display needs no tmux. Prefer in-process teams for individual effort control; split-pane behavior depends on the host.
 
-## 3. Local helper commands
+Claude Code manages native team creation, messages, and tasks; Pro Dev supplies the workflow and roles. If teams or a requested model are unavailable, the workflow must say so and identify any fallback. Ordinary subagents do not constitute a native team. [Official team controls and limitations](https://code.claude.com/docs/en/agent-teams).
 
-These nine commands are deterministic and do not start a model turn. The two workflow skills above do use models.
+**Agent workflows consume your subscription allowance.** Extra coordination and agents can increase usage and latency. Pro Dev does not unlock models, increase limits, or guarantee savings.
 
-| Command | Purpose |
+## Local commands
+
+These **nine helpers do not start a model turn**. Run them inside Claude Code. `/prodev:advisor`, `/prodev:team`, and other model skills are separate from these helpers.
+
+| Command | What it does |
 | --- | --- |
-| `/prodev` | Usage, counters, and command overview. |
-| `/prodev-doctor` | Loaded hooks, command conflicts, and missing readings. |
-| `/prodev-queue add <text>` | Queue a task without starting it. |
-| `/prodev-queue list` / `draft <id>` / `remove <id>` / `clear` | Manage the queue. `draft` fills the prompt; press Enter to send. |
-| `/prodev-flow [mermaid]` | Observed agent activity; not a team manager. |
-| `/prodev-next` | Simple next-step suggestions. |
-| `/prodev-checks [profile \| run <name>]` | Verification receipts or an explicitly selected project check. |
-| `/prodev-report` | Session metrics JSON without prompt or tool bodies. |
-| `/prodev-model [executor\|advisor <model> [effort] \| reset]` | Choose model and reasoning for future Pro Dev agents. |
-| `/prodev-filter on` / `off` | Toggle long shell/MCP output shortening. Output redaction stays active. |
+| `/prodev` | Shows usage, counters, and the command overview. |
+| `/prodev-doctor` | Checks loaded hooks, conflicts, and missing readings. |
+| `/prodev-model [executor\|advisor <model> [effort] \| reset]` | Shows or changes choices for future Pro Dev agents. |
+| `/prodev-queue add <task>` | Saves a task without starting it. |
+| `/prodev-flow [mermaid]` | Displays observed agent activity; does not manage a team. |
+| `/prodev-next` | Suggests simple next steps. |
+| `/prodev-checks [profile \| run <name>]` | Shows verification receipts or runs a selected project check. |
+| `/prodev-report` | Exports session metrics JSON without prompt/tool bodies. |
+| `/prodev-filter on` / `off` | Toggles shortening of long shell/MCP output; redaction remains active. |
 
-5-hour and 7-day usage readings come from Claude Code. Missing readings show `unknown`. Context fill and cache ratio are separate measurements, not remaining allowance. Queues, receipts, and counters disappear when the session ends.
+Queue management: `/prodev-queue list`, `draft <id>`, `remove <id>`, `clear`. `draft` fills the prompt; press Enter to send it. Queues, choices, receipts, and counters disappear when the session ends.
 
-For configured checks, copy [the example](docs/prodev.example.json) to `.prodev.json` in your working folder and review its programs first. Nothing runs automatically. `/prodev-checks run <name>` runs that program as your Windows user. See [project checks](docs/PROJECT-CHECKS.md) for execution and receipt limits.
+The 5-hour and 7-day readings come from Claude Code; unavailable data displays **`unknown`**. Context fill and cache ratio measure different things and are not remaining allowance.
 
-## Installation changes and removal
+For project checks, copy [the example](docs/prodev.example.json) to `.prodev.json` in your working folder and review the programs. Nothing runs automatically. `/prodev-checks run <name>` executes the selected program as your Windows user. [Checks and receipt limits](docs/PROJECT-CHECKS.md).
+
+## Troubleshooting
+
+| Symptom | What to do |
+| --- | --- |
+| `/prodev:advisor` is “not installed” | Update Pro Dev with the installer, restart Claude Code, and check `/plugin` then `/prodev-doctor`. Updating Claude Code alone does not update Pro Dev. |
+| A slash command fails in PowerShell | Run installation commands in PowerShell; run `/prodev…` commands inside Claude Code. Helpers use a hyphen; workflows use a colon. |
+| Claude cannot find code or a task | Start in the actual project folder and give a complete task or repository/issue reference. |
+| Model or effort unavailable | Update Claude Code and check your account's available models. Report the limitation; choose an available model explicitly. |
+| Usage says `unknown` | The host did not supply that reading. `/prodev-doctor` can show missing telemetry. |
+| Output seems incomplete | Use targeted output or `/prodev-filter off`; shortening can omit useful evidence. |
+| Teams do not start | Enable the flag, start a new interactive session, and check the official experimental feature limitations. |
+
+## Installation settings & removal
+
+<details>
+<summary><strong>See what the installer changes and how to undo it</strong></summary>
 
 - Registers `prodev@claude-pro-dev-local` in user scope, under `%USERPROFILE%\.claude\prodev\package` or your existing `CLAUDE_CONFIG_DIR`.
 - Backs up configuration and the previous package; restores them if installation fails.
-- Disables automatic compaction and removes the old custom threshold. Restart Claude Code and use `/compact` manually.
-- Preserves model, effort, permissions, other environment settings, and project instructions. `-EnableAgentTeams` enables the teams flag; ordinary installation preserves its current value.
-- Disables overlapping user-scope `prodev` plugins from another marketplace to avoid duplicate commands; retains their files.
+- Disables automatic compaction and removes the old custom threshold. Use `/compact` manually.
+- Preserves model, effort, permissions, environment settings, and project instructions. `-EnableAgentTeams` explicitly enables the teams flag.
+- Disables overlapping user-scope `prodev` plugins from other marketplaces to avoid duplicate commands; retains their files.
 
-Version 0.3 removes the command/file-name guard and `/prodev-guard`. Pro Dev does not reject tool calls by keyword. Claude Code's permission checks still apply. Best-effort output redaction remains; it is not complete secret protection. Filtering can omit evidence; use targeted output or switch filtering off when needed.
-
-Disable or uninstall:
+Version 0.3 removes the command/file-name guard and `/prodev-guard`; Pro Dev no longer rejects tool calls by keyword. Claude Code's permissions still apply. Best-effort output redaction remains, but cannot ensure complete secret protection.
 
 ```powershell
 claude plugin disable prodev@claude-pro-dev-local --scope user
 claude plugin uninstall prodev@claude-pro-dev-local --scope user
 ```
 
-Saved compaction and team preferences remain after removal. Restore backed-up settings, or edit `settings.json`: set `autoCompactEnabled` to `true` for automatic compaction and remove the teams environment entry to disable teams for new sessions. Clear any shell-level teams flag too. Backups remain under `.claude\prodev\backups`.
+Saved compaction and teams preferences remain after removal. Restore a backup or edit `settings.json`: set `autoCompactEnabled` to `true` for automatic compaction, and remove the teams environment entry to disable teams in new sessions. Clear any shell-level teams flag too. Backups remain under `.claude\prodev\backups`.
 
-## Development and verification
+</details>
+
+## Development & further reading
+
+<details>
+<summary><strong>Run validation and build the self-contained installer</strong></summary>
 
 ```powershell
 claude plugin validate . --strict
@@ -158,6 +238,10 @@ powershell.exe -NoProfile -File .\tests\release.Tests.ps1
 powershell.exe -NoProfile -File .\tests\install.Tests.ps1
 ```
 
-Rebuild root `install.ps1` after editing embedded files. Native tests need no model credentials. Model behavior and interactive teams need a signed-in session; static validation does not prove them. [Verification scope](docs/VERIFICATION.md) · [Architecture](docs/ARCHITECTURE.md) · [Benchmark](docs/BENCHMARK.md) · [Publishing](docs/PUBLISHING.md).
+Rebuild root `install.ps1` after changing embedded files, including the README and docs. Native tests need no model credentials; live model tests require sign-in and consume allowance. Static validation cannot prove live team behavior.
 
-Older pilot files describe v0.2 and remain historical evidence, not results for advisor/team workflows. No subscription savings have been established.
+</details>
+
+[Architecture](docs/ARCHITECTURE.md) · [Verification](docs/VERIFICATION.md) · [Benchmark protocol](docs/BENCHMARK.md) · [Contributing](CONTRIBUTING.md) · [Publishing](docs/PUBLISHING.md) · [MIT license](LICENSE)
+
+Older pilot files are historical v0.2 evidence and do not establish results or savings for the current workflows.

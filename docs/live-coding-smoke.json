@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-13",
+  "pluginVersion": "0.3.1",
+  "claudeVersion": "2.1.296 (Claude Code)",
+  "test": "Signed integer parser bugfix with Opus advisor and Sonnet executor",
+  "installedPluginSourceMatches": true,
+  "isolatedOtherPlugins": true,
+  "originalBugReproduced": true,
+  "independentAcceptancePass": true,
+  "independentCases": 6,
+  "visibleCheckUnchanged": true,
+  "exitCode": 0,
+  "timedOut": false,
+  "modelError": false,
+  "resolvedModels": [
+    "claude-sonnet-5-5",
+    "claude-opus-5-5"
+  ],
+  "agentCalls": [
+    {
+      "subagent_type": "prodev:advisor",
+      "model": "opus",
+      "effort": "high"
+    },
+    {
+      "subagent_type": "prodev:executor",
+      "model": "sonnet",
+      "effort": "medium"
+    }
+  ],
+  "permissionDenials": 0,
+  "requestedEffortEvidence": "Agent invocation arguments; provider reasoning budgets were not measured",
+  "scope": "One isolated coding task, not a general quality or savings benchmark; native teams not exercised",
+  "sourceCommit": "6fb816507774a0c06e754d1fa98d0753fb7d76a8",
+  "fixture": "benchmarks/signed-total",
+  "acceptance": "benchmarks/acceptance.ps1",
+  "coordinator": {
+    "effort": "low",
+    "model": "sonnet"
+  },
+  "acceptanceResults": [
+    {
+      "actual": -5,
+      "input": "-12, 3, 4",
+      "passed": true,
+      "expected": -5
+    },
+    {
+      "actual": -5,
+      "input": "-2,-3",
+      "passed": true,
+      "expected": -5
+    },
+    {
+      "actual": 0,
+      "input": "0, 2, -2",
+      "passed": true,
+      "expected": 0
+    },
+    {
+      "actual": 6,
+      "input": " 10, , -4 ",
+      "passed": true,
+      "expected": 6
+    },
+    {
+      "actual": 0,
+      "input": "",
+      "passed": true,
+      "expected": 0
+    },
+    {
+      "actual": 5,
+      "input": "2,3",
+      "passed": true,
+      "expected": 5
+    }
+  ],
+  "fix": "Removed TrimStart from the parsed integer so the negative sign is preserved."
+}

@@ -1,18 +1,51 @@
+<div align="center">
+
 # Claude Pro Dev
 
-**Claude aboneliğinle daha düzenli geliştirme yapmanı sağlayan küçük bir Claude Code eklentisi.**
+**Kod yazan modeli seç, uzmana danış, oturumunu takip et.**
 
-[English](README.md) · [Katkıda bulunma](CONTRIBUTING.md) · [MIT lisansı](LICENSE)
+[![CI](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml/badge.svg)](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
+![Sürüm](https://img.shields.io/badge/version-0.3.1-8b5cf6)
+![Windows](https://img.shields.io/badge/Windows-PowerShell_5.1%2B-0078d4)
+![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.293%2B-f59e0b)
+[![MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 
-Pro Dev; kullanım göstergesi, yerel yardımcı komutlar, **modeli seçilebilen uygulayıcı + danışman** akışı ve isteğe bağlı **Agent Teams** desteği ekler. Varsayılan uygulayıcı Sonnet, danışman Opus'tur; Haiku ve ayrı düşünme seviyeleri de seçilebilir. Abonelik hesabınla giriş yapman yeterli. Ayrı API anahtarı, sunucusu, proxy veya ücretli API entegrasyonu gerekmez.
+[English](README.md) · **Türkçe**
 
-Sürüm **0.3.1** · Windows PowerShell **5.1+** · Claude Code **2.1.293+** (Haiku 5.5 için gerekli). Claude Code'u `claude update` ile güncelle. [googIeuser](https://github.com/googIeuser) tarafından geliştirilen bağımsız topluluk projesidir; Anthropic ile bağlantılı değildir.
+![Pro Dev: koordinatör, danışman, uygulayıcı](docs/assets/workflow.tr.svg)
 
-## 1. Kurulum
+[Hızlı başlangıç](#hızlı-başlangıç) · [Model ve düşünme](#model-ve-düşünme) · [Test sonuçları](#gerçekte-neler-test-edildi) · [Komutlar](#yerel-komutlar) · [Sorun giderme](#sorun-giderme)
 
-[Claude Code'u kur](https://code.claude.com/docs/en/setup), `claude --version` komutunu kontrol et ve `claude auth login` ile abonelik hesabına giriş yap.
+</div>
 
-Repoyu indirip PowerShell'de kur:
+Pro Dev, Claude Code için bir Windows eklentisidir. Mevcut modelin işi koordine eder; **uygulayıcı (executor)** kodu değiştirip kontrol eder, yalnızca okuma yetkili **danışman (advisor)** ise zor kararlarda yardımcı olur. Her rol için Haiku, Sonnet veya Opus seçebilir, düşünme seviyesini ayrı ayarlayabilirsin. Yerel komutlarla kullanımını görebilir, görevleri sıraya koyabilir ve yapılan kontrolleri takip edebilirsin.
+
+Giriş yaptığın **Claude aboneliğini** kullanır. Ayrı API anahtarı, API sunucusu, proxy, npm, Python veya MCP sunucusu gerektirmez. [googIeuser](https://github.com/googIeuser) tarafından geliştirilen bağımsız bir topluluk projesidir.
+
+> [!TIP]
+> İlk kullanım: kur, Claude Code'u **kod projenin klasöründe yeniden başlat**, ardından aşağıdaki üç komutluk örneği dene. Varsayılan uygulayıcı **Sonnet**, danışman **Opus**.
+
+## Hızlı başlangıç
+
+### 1 · PowerShell'de: Claude Code'u kontrol et ve eklentiyi kur
+
+Gerekirse önce [Claude Code'u kur](https://code.claude.com/docs/en/setup). Güncellemeyi kontrol et ve abonelik hesabınla giriş yap:
+
+```powershell
+claude update
+claude --version
+claude auth login
+```
+
+Haiku 5.5 için Claude Code **2.1.293+** gerekir. **13 Ekim 2026** tarihinde güncelleyicinin sunduğu güncel sürüm **2.1.296** idi; aşağıdaki canlı testler bu sürümde yapıldı.
+
+Pro Dev'i kur:
+
+```powershell
+irm 'https://raw.githubusercontent.com/googIeuser/Claude-Pro-Dev/main/install.ps1' | iex
+```
+
+Bu komut repodaki bağımsız kurulum dosyasını indirip çalıştırır. Önce kaynağı incelemek istersen:
 
 ```powershell
 git clone https://github.com/googIeuser/Claude-Pro-Dev.git
@@ -20,133 +53,180 @@ Set-Location .\Claude-Pro-Dev
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Ya da varsayılan daldaki bağımsız kurulum dosyasını kullan:
+Yönetici yetkisi gerekmez. Pro Dev'i daha sonra güncellemek için kurulum dosyasını yeniden indir veya yerel repoyu güncelleyip kurulumu tekrar çalıştır.
 
-```powershell
-irm 'https://raw.githubusercontent.com/googIeuser/Claude-Pro-Dev/main/install.ps1' | iex
+### 2 · Projende: yeni bir Claude Code oturumu aç
+
+Değiştireceğin kodun bulunduğu klasörü aç, ardından `claude` çalıştır. Kurulum sırasında açık olan oturumu kapatıp yenisini aç. Claude Code içinde önce `/plugin`, sonra `/prodev` ile kontrol et.
+
+> [!IMPORTANT]
+> Kurulum **elle sıkıştırma** tercihini kaydeder: otomatik bağlam sıkıştırma kapanır; gerektiğinde `/compact` kullan. Ayarlar ve eski paket yedeklenir. İsteğe bağlı ekip ayarı, açıkça etkinleştirmediğin sürece korunur. [Tüm kurulum değişiklikleri](#kurulum-ayarları-ve-kaldırma).
+
+### 3 · Claude Code içinde: rolleri seç ve görevi açıkça yaz
+
+```text
+/prodev-model executor sonnet medium
+/prodev-model advisor opus high
+/prodev:advisor Ayrıştırıcıdaki negatif sayıların işaretini kaybetme hatasını düzelt. Yaklaşım için danışmana sor, düzeltmeyi uygulayıcıya devret ve ayrıştırıcı testlerini çalıştır.
 ```
 
-İndirip çalıştırma komutu repo kodunu yürütür; tercih edersen `install.ps1` dosyasını önce indirip incele. Yönetici yetkisi, npm, Python ve ayrı MCP sunucusu gerekmez.
+İlk iki komut model turu başlatmadan seçimleri kaydeder. Üçüncüsü model kullanan iş akışını başlatır. Hatalı davranışı ve beklediğin sonucu belirt; tek başına `31` yazmak hangi repo issue'sunu veya görevi kastettiğini açıklamaz.
 
-Deneysel Agent Teams desteğini kurulumda açmak için:
+## İş akışı nasıl çalışır?
+
+| Rol | Görevi | Varsayılan |
+| --- | --- | --- |
+| Ana oturumun | İsteği anlar, işi dağıtır ve sonucu bildirir. | Mevcut modelin |
+| `prodev:advisor` | İlgili kodu okuyup yaklaşım önerir; dosya değiştiremez, terminal komutu çalıştıramaz. | Opus |
+| `prodev:executor` | Kendisine verilen değişikliği uygular ve doğrular. | Sonnet |
+
+İkinci görüşün yararlı olacağı zor hata ve değişikliklerde **`/prodev:advisor <görev>`** kullan. Basit işlerde danışmana başvurmak şart değildir; bir engelde veya zor son kontrolde tekrar danışılabilir. Ana oturumunun modeli korunur; rol seçimleri devredilen ajanlara uygulanır.
+
+Bu akış, Anthropic'in [advisor yaklaşımını](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) [Claude Code alt ajanlarıyla](https://code.claude.com/docs/en/sub-agents) uyarlar. Platformdaki Advisor Tool bir API özelliğidir. Pro Dev aynı yaklaşımı Claude Code ajanları ve giriş yaptığın oturum üzerinden uygular. Danışmana verilen bağlam ve ilgili dosyalar aktarılır; tüm konuşmanın otomatik kopyası aktarılmaz.
+
+Normal geliştirme için düz bir istek yazmaya devam edebilirsin. Pro Dev kısa mühendislik yönergeleri sağlar; istersen `/prodev:engineering` kontrol listesini de kullanabilirsin.
+
+## Model ve düşünme
+
+### Modeli sen seç veya iş akışına seçtir
+
+| Amaç | Claude Code içindeki komut |
+| --- | --- |
+| Dar kapsamlı, net işi Haiku'ya ver | `/prodev-model executor haiku low` |
+| Uygulama için Sonnet kullan | `/prodev-model executor sonnet medium` |
+| Opus'tan daha derin görüş al | `/prodev-model advisor opus high` |
+| Her görev için Haiku/Sonnet seçimini akışa bırak | `/prodev-model executor auto medium` |
+| Üst ajanın modelini ve düşünme ayarını izle | `/prodev-model executor inherit inherit` |
+| Mevcut seçimleri gör | `/prodev-model` |
+| Sonnet uygulayıcı / Opus danışman varsayılanlarına dön | `/prodev-model reset` |
+
+`auto`, iş akışına şu yönergeyi verir: **dar kapsamlı ve net işlerde Haiku**, **karmaşık, belirsiz veya birden fazla dosyaya yayılan işlerde Sonnet** seç. Seçim, işi devretmeden önce açıklanır. Bu, bir prompt yönergesidir; kesin kurallı sınıflandırıcı veya kota optimizasyon sistemi değildir.
+
+İki rol de `haiku`, `sonnet`, `opus`, `inherit` veya tam sürüm kimliklerini kabul eder: `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`. Kısa adları Claude Code çözümler; tam kimlik belirli sürümü talep eder. `auto` yalnızca uygulayıcı için kullanılabilir.
+
+### Her rolün düşünme seviyesini ayrı ayarla
+
+Seçenekler: **`low` · `medium` · `high` · `xhigh` · `max` · `inherit`**.
+
+Uygulama için `medium`, zor bir danışmanlık sorusu için `high` ile başlayıp göreve göre değiştirebilirsin. Yüksek seviye daha fazla kullanım hakkı ve zaman harcayabilir. Aynı seviye adı farklı modellerde aynı düşünme miktarı demek değildir. Seviye yazmazsan o rol `inherit` ayarına döner ve çağıran ajanın/Claude Code'un ayarını izler.
+
+> [!NOTE]
+> Seçimler **yalnızca bu oturumdaki yeni Pro Dev ajanlarına** uygulanır. Açılmış ajanlar ayarlarını korur; diğer ajanlar ve genel model ayarların etkilenmez. Yeniden yükleme/çıkış seçimleri sıfırlar. Ana oturumunu değiştirmek için yerleşik `/model` ve `/effort` komutlarını kullan.
+
+Ajan ayrıntılarını `/tasks` içinde kontrol et. Hesabındaki model erişimi, Claude Code politikaları, ortam değişkenleri ve modelin desteklediği özellikler öncelikli olabilir. 5.5 modelleri uyarlanabilir düşünme kullanır; burada ajan başına düşünmeyi tamamen kapatan destekli bir seçenek yoktur. [Resmî model ayarları](https://code.claude.com/docs/en/model-config).
+
+## Gerçekte neler test edildi?
+
+**Kayıt: 13 Ekim 2026 · Pro Dev 0.3.1 · yerel Claude Code 2.1.296 · Windows.**
+
+| Durum | Test | Gözlenen sonuç |
+| --- | --- | --- |
+| 🟢 Geçti | Claude Code güncelleyicisi | Kurulu 2.1.296 zaten günceldi. |
+| 🟢 Geçti | Yerel eklenti testleri | **55 başarılı, 0 başarısız**; model seçimi, düşünme aktarımı, filtreleme, kuyruk ve kontrol kayıtları dahil. |
+| 🟢 Geçti | Gerçek CLI yardımcı komut denemesi | **20 komut sonucu, 0 model turu**; dokuz yardımcı komut ve iki rol/iş akışı bulundu. |
+| 🟢 Geçti | Canlı Haiku uygulayıcı | `low` düşünme talep edilen Haiku 5.5, küçük aritmetik görevinde **323** sonucunu verdi. |
+| 🟢 Geçti | Canlı Sonnet danışman + uygulayıcı | Ayrı `high` / `medium` düşünme talepleriyle aritmetik sonucu **437**. |
+| 🟢 Geçti | Canlı `auto` seçimi | Dar kapsamlı aritmetik işinde Haiku seçildi; sonuç **91**. |
+| 🟢 Geçti | **Canlı Opus danışman + Sonnet kod uygulayıcı** | İşaretli tam sayı ayrıştırma hatasını düzeltti. **6 bağımsız kabul kontrolü geçti**; ilk hatalı sürüm önceden başarısız oldu, verilen kontrol dosyası değiştirilmedi. |
+| 🟢 Geçti | Kurulum ve paket kontrolleri | Ayrı ortamda kurulum, yükseltme, geri alma, paket bütünlüğü ve yeniden üretilebilirlik PowerShell **5.1 ve 7** ile kontrol edildi. |
+| 🟡 Canlı denenmedi | Yerel etkileşimli Agent Teams | Rol/iş akışının yüklenmesi ve ekip ayarı kontrol edildi; gerçek ekip koordinasyonu çalıştırılmadı. |
+| ⚪ Ölçülmedi | Tasarruf, genel kod kalitesi, gerçek düşünme bütçesi | Bu küçük testlerden böyle bir sonuç çıkarılmıyor. |
+
+Canlı model kimliklerini Claude Code raporladı. Düşünme kanıtı, **Agent çağrısında istenen ayarlardır**; sağlayıcının gerçek düşünme bütçesi ölçülmedi. Kod sonucu, ayrı klasörde yapılan tek bir hata düzeltmesidir; genel kodlama kıyaslaması değildir. Başarısız ilk kalibrasyon, geçen aritmetik denemelerinden ayrı kaydedildi.
+
+[Ayrıntılı doğrulama](docs/VERIFICATION.md) · [Aritmetik kanıtları](docs/live-model-smoke.json) · [Kod düzeltme kanıtı](docs/live-coding-smoke.json) · [CI matrisi: 2.1.293 / 2.1.296 × iki PowerShell](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
+
+## İsteğe bağlı: Agent Teams
+
+İş bağımsız dosyalara veya modüllere ayrılabiliyorsa **`/prodev:team <görev>`** kullan. Varsayılan ekip küçüktür. Sırayla yapılacak veya aynı dosyayı değiştiren işleri tek oturumda tut.
+
+Ekipleri **etkileşimli oturumu başlatmadan önce** aç. İndirdiğin repo klasöründe kurulum dosyası bu ayarı kaydedebilir:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -EnableAgentTeams
 ```
 
-Claude Code'u proje klasöründe yeniden başlat. Önce `/plugin`, ardından `/prodev` ile kontrol et.
-
-## 2. Çalışma şeklini seç
-
-| Yapacağın iş | Kullan | Ne olur? |
-| --- | --- | --- |
-| Küçük düzeltme veya günlük geliştirme | Normal promptun | Mevcut modelin kısa Pro Dev mühendislik talimatlarıyla çalışır. |
-| Karmaşık değişiklik veya zor hata | `/prodev:advisor <görev>` | Oturum modelin uygulayıcı alt ajanı ve gerektiğinde salt okunur danışmanı koordine eder. |
-| Modüllerde bağımsız işler | `/prodev:team <görev>` | Lider, ayrı görev ve dosya sahipliğiyle küçük bir yerel ajan ekibi koordine eder. |
-| Kullanım veya tanılama | `/prodev`, `/prodev-doctor` | Yerel yardımcılar model isteği başlatmadan mevcut okumaları gösterir. |
-
-### Danışman örneği
-
-```text
-/prodev:advisor Oturum yenileme hatasını düzelt. Kodu incele, yaklaşım için danışmandan görüş al, düzeltmeyi uygula ve etkilenen testleri çalıştır.
-```
-
-Ana oturumun, uygulama ve doğrulama için `prodev:executor` ajanını koordine eder; karmaşık işlerde `prodev:advisor` görüşü alınır. Takıldığı nokta veya zor son inceleme için ikinci danışma yapılabilir. Basit görevlerde danışman çağrısı atlanabilir. Koordinasyon ve delegasyon ek tüketim ve gecikme oluşturabilir.
-
-Bu akış, [advisor yaklaşımını](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) [Claude Code alt ajanlarıyla](https://code.claude.com/docs/en/sub-agents) uyarlar. Platformdaki gerçek Advisor Tool bir API özelliğidir; bu eklenti normal Claude Code ajanlarını kullanır. Danışman, kendisine aktarılan görev bağlamını ve ilgili dosyaları görür; konuşmanın tamamı otomatik aktarılmaz.
-
-Ana oturum modelin korunur. Uygulayıcı/danışman seçimi aşağıda açıklanır. Gerçekte kullanılabilen modeller aboneliğine ve ortam kısıtlamalarına bağlıdır. Model veya ajan kullanılamıyorsa akış bunu ve kullandığı alternatifi dürüstçe belirtmelidir. Genel model ve effort ayarın korunur.
-
-### Model ve düşünme seviyesi seçimi
-
-Akış komutundan önce tercihlerini ayarla:
-
-```text
-/prodev-model executor haiku low
-/prodev-model advisor opus high
-/prodev:advisor Parser'ın boş girdi hatasını düzelt ve testlerini çalıştır.
-```
-
-İstersen uygulayıcı modeli görev başına akış seçsin:
-
-```text
-/prodev-model executor auto medium
-/prodev:team Parser'ı incele ve ayrı dosyalarda testlerini geliştir.
-```
-
-`auto`, akışa model seçimi talimatı verir: dar ve net işler için Haiku; karmaşık, belirsiz veya çok dosyalı işler için Sonnet. Ayrı bir sınıflandırıcı, kota optimizasyonu veya model erişimi garantisi değildir. Seçilen model delegasyondan önce belirtilir.
-
-| Seçim | Değerler |
-| --- | --- |
-| Rol | `executor` (uygulayıcı), `advisor` (danışman) |
-| Model | `haiku`, `sonnet`, `opus`, `inherit` veya tam `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` kimliği |
-| Otomatik seçim | Yalnız uygulayıcı için `auto` |
-| Düşünme seviyesi | `low`, `medium`, `high`, `xhigh`, `max`, `inherit` |
-
-Seviye yazmazsan `inherit` olur; çağrının/host'un ayarı korunur. Modelde `inherit`, üst ajanın modelini kullanır. Kısa adları host çözer; tam kimlik belirli sürümü ister. `/prodev-model` tercihleri gösterir, `/prodev-model reset` Sonnet/Opus varsayılanına ve miras alınan seviyeye döner. Tercihler **bu oturumdaki yeni Pro Dev ajanlarına** uygulanır; yeniden yükleme/çıkışta silinir ve diğer ajanları etkilemez. Çalışan ajanların ayarı değişmez. Yeni model komutunda seviye yazmazsan o rolün seviyesi inherit'e döner.
-
-Ana oturum için yerel `/model` ve `/effort` komutlarını kullan. Gerçek alt ajan modelini/seviyesini `/tasks` ile kontrol et; host politikası, ortam değişkenleri ve model sınırları öncelikli olabilir. Ayrı effort kontrolü için in-process ekipleri kullan; bölünmüş pencere davranışı host'a göre değişir. 5.5 modelleri uyarlanabilir düşünme kullanır; burada desteklenen bir alt ajan düşünmesini tamamen kapatma seçeneği yoktur. Yüksek seviye daha çok kota tüketebilir; aynı seviye adı farklı modellerde aynı düşünme miktarı demek değildir. [Resmî model ayarları](https://code.claude.com/docs/en/model-config).
-
-### Agent Teams örneği
-
-```text
-/prodev:team Ayarlar ekranını ve testlerini geliştir. İki Sonnet ekip üyesine ayrı dosyalar ver, bulguları koordine et, sonunda birleşik değişiklikleri doğrula.
-```
-
-Ekip desteği **etkileşimli oturum başlamadan önce** açılmalıdır. Kurulum seçeneği kullanıcı ayarlarına `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` yazar. Sadece başlatacağın oturum için alternatif:
+Veya yalnızca mevcut PowerShell ortamında etkinleştir:
 
 ```powershell
 $env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1'
 claude
 ```
 
-Ekibi, mesajları ve görevleri Claude Code yönetir. Pro Dev; tekrar kullanılabilen `prodev:executor` (Sonnet), `prodev:advisor` (salt okunur Opus) rollerini ve koordinasyon akışını sağlar. Varsayılan ekip küçüktür; aynı dosyadaki veya sıralı işler tek oturumda yürütülmelidir. Windows'ta varsayılan in-process görünüm için tmux gerekmez.
+Ardından Claude Code içinde:
 
-Ekip özelliği deneyseldir ve `claude -p` modunda çalışmaz. Özellik kullanılamıyorsa bu açıkça belirtilmelidir; normal alt ajanlar alternatif olabilir fakat yerel ekip olarak gösterilmemelidir. Güncel sınırlar ve kontroller için [resmî Agent Teams belgesine](https://code.claude.com/docs/en/agent-teams) bak.
+```text
+/prodev-model executor sonnet medium
+/prodev:team Ayarlar ekranını ve testlerini geliştir. İki ekip arkadaşına ayrı dosyalar ver, bulguları paylaş ve birleşik değişiklikleri doğrula.
+```
 
-**Advisor ve team akışları abonelik kotanı kullanır.** Ek ajanlar tüketimi artırabilir. Pro Dev tasarruf garantisi vermez, model erişimi açmaz ve hesap limitlerini yükseltmez.
+> [!WARNING]
+> Ekipler **deneyseldir ve bu sürümde canlı test edilmemiştir**. Etkileşimli oturum gerekir; `claude -p` modunda kullanılamaz. Windows'ta aynı oturum içindeki görünüm tmux gerektirmez. Ajan başına düşünme ayarı için bu görünümü tercih et; bölünmüş terminal davranışı ortama bağlıdır.
 
-## 3. Yerel yardımcı komutlar
+Yerel ekip kurma, mesaj ve görev yönetimini Claude Code yapar; Pro Dev iş akışını ve rolleri sağlar. Ekipler veya istenen model kullanılamıyorsa akış bunu açıklamalı, başvurulan alternatifi belirtmelidir. Normal alt ajanlar yerel Agent Teams ekibi sayılmaz. [Resmî ekip kontrolleri ve sınırlamalar](https://code.claude.com/docs/en/agent-teams).
 
-Bu dokuz komut deterministiktir ve model turu başlatmaz. Yukarıdaki iki akış komutu model kullanır.
+**Ajanlı iş akışları abonelik kullanım hakkını harcar.** Ek koordinasyon ve ajanlar kullanımı ve bekleme süresini artırabilir. Pro Dev model erişimi açmaz, limit yükseltmez veya tasarruf garantisi vermez.
 
-| Komut | İşlevi |
+## Yerel komutlar
+
+Bu **dokuz yardımcı komut model turu başlatmaz**. Claude Code içinde çalıştırılır. `/prodev:advisor`, `/prodev:team` ve model kullanan diğer skill'ler bu yardımcı komutlardan ayrıdır.
+
+| Komut | Ne yapar? |
 | --- | --- |
-| `/prodev` | Kullanım, sayaçlar ve komut özeti. |
-| `/prodev-doctor` | Yüklenen hook'lar, komut çakışmaları ve eksik okumalar. |
-| `/prodev-queue add <metin>` | Görevi başlatmadan kuyruğa ekler. |
-| `/prodev-queue list` / `draft <id>` / `remove <id>` / `clear` | Kuyruğu yönetir. `draft` prompt alanını doldurur; göndermek için Enter'a sen basarsın. |
-| `/prodev-flow [mermaid]` | Gözlenen ajan etkinliği; ekip yöneticisi değildir. |
-| `/prodev-next` | Basit sonraki adım önerileri. |
-| `/prodev-checks [profile \| run <ad>]` | Doğrulama kayıtları veya açıkça seçtiğin proje kontrolü. |
-| `/prodev-report` | Prompt ve araç gövdeleri olmadan JSON oturum metrikleri. |
-| `/prodev-model [executor\|advisor <model> [seviye] \| reset]` | Yeni Pro Dev ajanlarının model ve düşünme tercihi. |
-| `/prodev-filter on` / `off` | Uzun shell/MCP çıktısını kısaltmayı açar/kapatır. Çıktıdaki hassas veri maskelemesi açık kalır. |
+| `/prodev` | Kullanımı, sayaçları ve komut özetini gösterir. |
+| `/prodev-doctor` | Yüklenen hook'ları, çakışmaları ve eksik ölçümleri kontrol eder. |
+| `/prodev-model [executor\|advisor <model> [effort] \| reset]` | Yeni Pro Dev ajanlarının seçimlerini gösterir veya değiştirir. |
+| `/prodev-queue add <görev>` | Görevi başlatmadan kaydeder. |
+| `/prodev-flow [mermaid]` | Gözlenen ajan hareketlerini gösterir; ekip yönetmez. |
+| `/prodev-next` | Basit sonraki adım önerileri verir. |
+| `/prodev-checks [profile \| run <ad>]` | Kontrol kayıtlarını gösterir veya seçilen proje kontrolünü çalıştırır. |
+| `/prodev-report` | Prompt/araç gövdeleri olmadan oturum ölçümlerini JSON olarak dışa verir. |
+| `/prodev-filter on` / `off` | Uzun terminal/MCP çıktılarının kısaltılmasını açar/kapatır; maskeleme açık kalır. |
 
-5 saatlik ve 7 günlük kullanım okumaları Claude Code'dan gelir. Okuma yoksa `unknown` gösterilir. Bağlam doluluğu ve önbellek oranı ayrı ölçümlerdir; kalan kota değildir. Kuyruk, doğrulama kayıtları ve sayaçlar oturum bitince kaybolur.
+Kuyruk yönetimi: `/prodev-queue list`, `draft <id>`, `remove <id>`, `clear`. `draft` prompt alanını doldurur; göndermek için Enter'a bas. Kuyruk, seçimler, kontrol kayıtları ve sayaçlar oturum sonunda silinir.
 
-Tanımlı kontroller için [örneği](docs/prodev.example.json) çalışma klasörüne `.prodev.json` olarak kopyala ve programları önce incele. Hiçbir kontrol otomatik çalışmaz. `/prodev-checks run <ad>` programı Windows kullanıcının yetkileriyle yürütür. Çalıştırma ve kayıt sınırları için [proje kontrollerine](docs/PROJECT-CHECKS.md) bak.
+5 saatlik ve 7 günlük kullanım ölçümleri Claude Code'dan gelir; veri yoksa **`unknown`** gösterilir. Bağlam doluluğu ve önbellek oranı farklı ölçümlerdir; kalan kullanım hakkını göstermezler.
 
-## Kurulum değişiklikleri ve kaldırma
+Proje kontrolleri için [örneği](docs/prodev.example.json) çalışma klasöründe `.prodev.json` olarak kopyala ve programları incele. Otomatik çalıştırma yoktur. `/prodev-checks run <ad>` seçilen programı Windows kullanıcın olarak çalıştırır. [Kontroller ve kayıt sınırları](docs/PROJECT-CHECKS.md).
 
-- `prodev@claude-pro-dev-local` eklentisini kullanıcı kapsamına, `%USERPROFILE%\.claude\prodev\package` veya mevcut `CLAUDE_CONFIG_DIR` altına kaydeder.
+## Sorun giderme
+
+| Belirti | Yapılacak işlem |
+| --- | --- |
+| `/prodev:advisor` “yüklü değil” diyor | Pro Dev'i kurulum dosyasıyla güncelle, Claude Code'u yeniden başlat, `/plugin` ve `/prodev-doctor` ile kontrol et. Sadece Claude Code'u güncellemek Pro Dev'i güncellemez. |
+| PowerShell'de slash komutu çalışmıyor | Kurulum komutları PowerShell'de; `/prodev…` komutları Claude Code içinde çalışır. Yardımcılar tire, iş akışları iki nokta kullanır. |
+| Claude kodu veya görevi bulamıyor | Gerçek proje klasöründe başlat; açık bir görev veya repo/issue bilgisi ver. |
+| Model veya düşünme seviyesi kullanılamıyor | Claude Code'u güncelle, hesabındaki model erişimini kontrol et. Sınırlamayı belirt ve erişilebilir modeli açıkça seç. |
+| Kullanım `unknown` görünüyor | Claude Code o ölçümü sağlamamış. `/prodev-doctor` eksik veriyi gösterebilir. |
+| Çıktı eksik görünüyor | Daha hedefli çıktı iste veya `/prodev-filter off` kullan; kısaltma yararlı kanıtı gizleyebilir. |
+| Ekip başlamıyor | Ayarı aç, yeni etkileşimli oturum başlat ve deneysel özelliğin resmî sınırlarını kontrol et. |
+
+## Kurulum ayarları ve kaldırma
+
+<details>
+<summary><strong>Kurulumun değiştirdikleri ve geri alma adımları</strong></summary>
+
+- `prodev@claude-pro-dev-local` eklentisini kullanıcı kapsamında, `%USERPROFILE%\.claude\prodev\package` veya mevcut `CLAUDE_CONFIG_DIR` altında kaydeder.
 - Ayarları ve önceki paketi yedekler; kurulum başarısız olursa geri yükler.
-- Otomatik bağlam sıkıştırmayı kapatır, eski özel eşiği kaldırır. Yeniden başlat ve gerektiğinde `/compact` kullan.
-- Model, effort, izinler, diğer ortam ayarları ve proje talimatlarını korur. `-EnableAgentTeams` ekip bayrağını açar; normal kurulum mevcut değerini korur.
-- Başka marketplace'teki çakışan kullanıcı kapsamlı `prodev` eklentilerini kapatır; dosyalarını tutar.
+- Otomatik sıkıştırmayı kapatır ve eski özel eşiği kaldırır. Gerektiğinde `/compact` kullan.
+- Model, düşünme, izin, ortam ve proje yönergelerini korur. `-EnableAgentTeams` ekip ayarını açıkça etkinleştirir.
+- Çift komut oluşmaması için başka marketplace'lerdeki çakışan kullanıcı kapsamlı `prodev` eklentilerini devre dışı bırakır; dosyalarını saklar.
 
-Sürüm 0.3, eski komut/dosya adı guard'ını ve `/prodev-guard` komutunu kaldırır. Pro Dev anahtar kelimelere göre araç çağrısı reddetmez. Claude Code'un kendi izin kontrolleri çalışmaya devam eder. Çıktıda hassas veri maskelemesi korunur; eksiksiz gizlilik koruması sağlamaz. Filtre kanıt atlayabilir; gerektiğinde hedefli çıktı al veya filtreyi kapat.
-
-Kapatmak veya kaldırmak için:
+0.3 sürümünde komut/dosya adı guard'ı ve `/prodev-guard` kaldırıldı; Pro Dev anahtar kelime yüzünden araç çağrılarını reddetmez. Claude Code'un izinleri uygulanmaya devam eder. Çıktıda mümkün olduğunca maskeleme yapılır; bu, tüm sırların korunacağını garanti etmez.
 
 ```powershell
 claude plugin disable prodev@claude-pro-dev-local --scope user
 claude plugin uninstall prodev@claude-pro-dev-local --scope user
 ```
 
-Kaydedilen sıkıştırma ve ekip tercihleri kaldırma sonrasında kalır. Yedek ayarlarını geri yükle veya `settings.json` dosyasını düzenle: otomatik sıkıştırma için `autoCompactEnabled` değerini `true` yap; yeni oturumlarda ekipleri kapatmak için ekip ortam değişkenini kaldır. Shell'de açtıysan o bayrağı da temizle. Yedekler `.claude\prodev\backups` altında kalır.
+Kaldırma sonrasında sıkıştırma ve ekip tercihleri kalır. Yedeği geri yükle veya `settings.json` içinde otomatik sıkıştırma için `autoCompactEnabled` değerini `true` yap; yeni oturumlarda ekipleri kapatmak için ilgili ortam girdisini kaldır. PowerShell'de tanımlanmış ekip değişkenini de temizle. Yedekler `.claude\prodev\backups` altında kalır.
 
-## Geliştirme ve doğrulama
+</details>
+
+## Geliştirme ve ek belgeler
+
+<details>
+<summary><strong>Doğrulama komutları ve bağımsız kurulum dosyası üretimi</strong></summary>
 
 ```powershell
 claude plugin validate . --strict
@@ -158,6 +238,10 @@ powershell.exe -NoProfile -File .\tests\release.Tests.ps1
 powershell.exe -NoProfile -File .\tests\install.Tests.ps1
 ```
 
-Gömülü dosyaları değiştirdikten sonra kökteki `install.ps1` dosyasını yeniden üret. Native testler model hesabı gerektirmez. Model davranışı ve etkileşimli ekipler, giriş yapılmış oturumda denenmelidir; statik doğrulama bunları kanıtlamaz. [Doğrulama kapsamı](docs/VERIFICATION.md) · [Mimari](docs/ARCHITECTURE.tr.md) · [Benchmark](docs/BENCHMARK.tr.md) · [Yayınlama](docs/PUBLISHING.md).
+README ve belgeler dahil gömülü dosyalar değiştiğinde kökteki `install.ps1` dosyasını yeniden üret. Yerel eklenti testleri model girişi gerektirmez; canlı model testleri giriş ister ve kullanım hakkı harcar. Statik doğrulama, canlı ekip davranışını kanıtlamaz.
 
-Eski pilot dosyaları v0.2'nin tarihsel kanıtlarıdır; advisor/team akışlarının sonucu değildir. Abonelik tasarrufu kanıtlanmış değildir.
+</details>
+
+[Mimari](docs/ARCHITECTURE.md) · [Doğrulama](docs/VERIFICATION.md) · [Kıyaslama protokolü](docs/BENCHMARK.md) · [Katkı rehberi](CONTRIBUTING.md) · [Yayınlama](docs/PUBLISHING.md) · [MIT lisansı](LICENSE)
+
+Eski pilot dosyaları v0.2'nin tarihsel kanıtlarıdır; güncel iş akışlarının başarısını veya tasarrufunu kanıtlamazlar.
