@@ -18,6 +18,10 @@ export function register(on) {
   let nextId = 1;
   let queue = [];
   const agents = new Map();
+  let modelChoices = { executor: { model: 'sonnet', effort: 'inherit' }, advisor: { model: 'opus', effort: 'inherit' } };
+  const explicitModels = new Set();
+  const agentRole = type => type === 'prodev:executor' ? 'executor' : type === 'prodev:advisor' ? 'advisor' : null;
+  const choicesText = () => Object.entries(modelChoices).map(([role, c]) => `${role} model: ${c.model}; effort: ${c.effort}`).join('\n');
   const reads = new Set();
   const finishedTurns = new Set();
   let revision = 0, receiptId = 0, completed = 0, durationMs = 0;
@@ -70,6 +74,7 @@ export function register(on) {
       ['prodev-doctor', 'Diagnose loaded hooks, command conflicts and missing readings', ''],
       ['prodev-checks', 'Verification receipts; explicitly run a trusted project check', 'profile | run <name>'],
       ['prodev-report', 'Print session metrics JSON without prompts or tool bodies', ''],
+      ['prodev-model', 'Choose model and effort for new Pro Dev agents in this session', '[executor|advisor <model> [effort] | reset]'],
     ]) {
       try { await $.command.register({ name, description, argumentHint, immediate: true }); registered.add(name); }
       catch { collisions.add(name); }
@@ -80,6 +85,11 @@ export function register(on) {
   on('prompt.context', ($, e, next) => {
     observed['prompt.context']++;
     return next({ ...e, blocks: e.blocks.some(b => b.name === 'prodevCore') ? e.blocks : [...e.blocks, { name: 'prodevCore', text: CORE_RULES }] });
+  });
+
+  on('skill.prompt', { skill: ['prodev:advisor', 'prodev:team'] }, async ($, e, next) => {
+    const result = await next(e);
+    return { ...result, text: result.text + '\n\nPro Dev session choices (requested, subject to host availability):\n' + choicesText() + '\nUse these choices for new agents. The Agent tool model argument accepts family aliases only: haiku, sonnet, opus. For a full model ID use its family alias in the tool call; Pro Dev applies the exact ID at the native spawn boundary. Never pass a full ID, inherit, or auto as Agent.model. For inherit omit model. For executor auto, choose haiku only for narrow, clearly specified work; use sonnet for complex, ambiguous, or multi-file changes. State your choice before delegation. Inherit effort means omit the effort argument and preserve the host/caller setting. These choices do not change the main session model.' };
   });
 
   on('session.measure', ($, e, next) => {
@@ -98,7 +108,9 @@ export function register(on) {
     if (['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(e.tool) || isShell(e.tool) || e.tool.startsWith('mcp__')) { reads.clear(); revision++; }
     const atRevision = revision;
     refresh($);
-    const result = await next(e); // Keeps Claude Code's permission checks.
+    const role = e.tool === 'Agent' ? agentRole(e.subagent_type) : null;
+    const effort = role ? modelChoices[role].effort : 'inherit';
+    const result = await next(effort === 'inherit' ? e : { ...e, effort }); // Keeps Claude Code's permission checks.
     if (result.deny !== undefined) return result;
     if (readKey && !result.isError) { reads.add(readKey); if (reads.size > 256) reads.delete(reads.values().next().value); }
     if (['Write', 'Edit', 'MultiEdit'].includes(e.tool) && !result.isError) edits++;
@@ -123,7 +135,9 @@ export function register(on) {
   }).catch(($, e, next) => next(e));
 
   on('agent.spawn', async ($, e, next) => {
-    const result = await next(e);
+    const role = agentRole(e.subagentType);
+    const model = role && explicitModels.has(role) ? modelChoices[role].model : 'auto';
+    const result = await next(model === 'auto' ? e : { ...e, model: model === 'inherit' ? e.parentModel ?? 'inherit' : model });
     if (result.agentId) {
       if (agents.size >= 128) {
         const finished = [...agents].find(([, a]) => a.state !== 'running');
@@ -155,9 +169,27 @@ export function register(on) {
     return next(e);
   });
 
-  on('command.run', { command: 'prodev' }, () => ({ text: [headline(), counters(), `observed input: ${tokens.input}, cache read: ${tokens.read}, cache write: ${tokens.write}, output: ${tokens.output}`, `filter: ${filtering ? 'on' : 'off'} | permissions: Claude Code`, 'Local helpers: /prodev-doctor, /prodev-checks, /prodev-report, /prodev-queue, /prodev-flow [mermaid], /prodev-next, /prodev-filter on|off', 'Model workflows: /prodev:advisor <task>, /prodev:team <task> (subscription usage applies)'].join('\n') }));
+  on('command.run', { command: 'prodev' }, () => ({ text: [headline(), counters(), `observed input: ${tokens.input}, cache read: ${tokens.read}, cache write: ${tokens.write}, output: ${tokens.output}`, `filter: ${filtering ? 'on' : 'off'} | permissions: Claude Code`, choicesText(), 'Local helpers: /prodev-doctor, /prodev-checks, /prodev-report, /prodev-model, /prodev-queue, /prodev-flow [mermaid], /prodev-next, /prodev-filter on|off', 'Model workflows: /prodev:advisor <task>, /prodev:team <task> (subscription usage applies)'].join('\n') }));
+  on('command.run', { command: 'prodev-model' }, ($, e) => {
+    const parts = e.args.trim().split(/\s+/);
+    if (!e.args.trim()) return { text: choicesText() + '\nSession-only choices for new Pro Dev agents; host/model/plan restrictions still apply. /prodev-model executor auto enables task-based selection.' };
+    if (parts.length === 1 && parts[0] === 'reset') {
+      modelChoices = { executor: { model: 'sonnet', effort: 'inherit' }, advisor: { model: 'opus', effort: 'inherit' } };
+      explicitModels.clear();
+      return { text: 'Model choices reset.\n' + choicesText() };
+    }
+    const [role, model, effort = 'inherit'] = parts;
+    const models = ['sonnet', 'haiku', 'opus', 'inherit', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5-5'];
+    if (parts.length < 2 || parts.length > 3 || !['executor', 'advisor'].includes(role) || !(models.includes(model) || role === 'executor' && model === 'auto') || !['inherit', 'low', 'medium', 'high', 'xhigh', 'max'].includes(effort)) {
+      return { text: 'Usage: /prodev-model [executor|advisor <sonnet|haiku|opus|inherit|full-5.5-model-id> [inherit|low|medium|high|xhigh|max] | reset]. executor also accepts auto. Thinking off is not an effort level.' };
+    }
+    modelChoices[role] = { model, effort };
+    explicitModels.add(role);
+    refresh($);
+    return { text: choicesText() + '\nApplied to future Pro Dev agents in this session; running agents keep their settings. Haiku 5.5 requires Claude Code 2.1.293+. Check actual model/effort in /tasks; host limits and environment overrides may take precedence.' };
+  });
   on('command.run', { command: 'prodev-doctor' }, () => ({ text: [
-    'Pro Dev 0.3.0 doctor (this session; not an installation or security certificate)',
+    'Pro Dev 0.3.1 doctor (this session; not an installation or security certificate)',
     ...Object.entries(observed).map(([name, n]) => `${name}: ${n ? 'observed (' + n + ')' : 'not observed'}`),
     ...[...collisions].map(name => `${name}: registration failed; inspect other mods with /plugin`),
     `helpers registered: ${registered.size} | quota: ${usage.rateLimits.some(r => Number.isFinite(r.percentUsed)) ? 'host reading available' : 'unknown'}`,
@@ -166,7 +198,7 @@ export function register(on) {
     'If this command is unavailable, run the installed scripts/doctor.ps1 outside Claude.',
   ].join('\n') }));
   on('command.run', { command: 'prodev-report' }, () => ({ text: JSON.stringify({
-    schemaVersion: 2, version: '0.3.0', scope: 'session-only',
+    schemaVersion: 2, version: '0.3.1', scope: 'session-only', modelChoices,
     counters: { tools: calls, repeatedReads: repeated, filtered: shortened, edits, queue: queue.length, agents: agents.size },
     turns: { completed, durationMs }, tokens: observedUsage ? tokens : null,
     rateLimits: usage.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed ?? null })),

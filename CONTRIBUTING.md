@@ -1,6 +1,6 @@
 # Contributing
 
-Use Windows PowerShell 5.1 or PowerShell 7 and Claude Code 2.1.287+. Claude's native engine runs the plugin tests; no package manager is needed.
+Use Windows PowerShell 5.1 or PowerShell 7 and Claude Code 2.1.293+. Claude's native engine runs the plugin tests; no package manager is needed.
 
 Keep changes focused. Preserve project instructions and Claude permissions. Avoid background polling, unsolicited model requests/agents, raw secret logging and broad truncation. Explain the benefit before adding dependencies.
 

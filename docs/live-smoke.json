@@ -1,6 +1,6 @@
 {
-    "claudeVersion":  "2.1.292 (Claude Code)",
-    "helperResults":  14,
+    "claudeVersion":  "2.1.296 (Claude Code)",
+    "helperResults":  20,
     "modelTurns":  0,
     "workflowDiscovery":  "advisor/executor agents and advisor/team commands",
     "checks":  [

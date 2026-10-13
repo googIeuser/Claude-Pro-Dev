@@ -66,10 +66,10 @@ foreach ($name in @('.claude-plugin', 'plugins')) { Copy-Item -LiteralPath (Join
 $oldManifest = Join-Path $upgradeSource 'plugins\prodev\.claude-plugin\plugin.json'
 $oldMarket = Join-Path $upgradeSource '.claude-plugin\marketplace.json'
 $oldPlugin = [IO.File]::ReadAllText($oldManifest) | ConvertFrom-Json
-$oldPlugin.version = '0.2.0'
+$oldPlugin.version = '0.3.0'
 [IO.File]::WriteAllText($oldManifest, ($oldPlugin | ConvertTo-Json -Depth 8), $utf8)
 $oldCatalog = [IO.File]::ReadAllText($oldMarket) | ConvertFrom-Json
-$oldCatalog.plugins[0].version = '0.2.0'
+$oldCatalog.plugins[0].version = '0.3.0'
 [IO.File]::WriteAllText($oldMarket, ($oldCatalog | ConvertTo-Json -Depth 8), $utf8)
 try {
     $env:CLAUDE_CONFIG_DIR = $upgradeConfig
@@ -83,7 +83,7 @@ try {
     $env:CLAUDE_CONFIG_DIR = $upgradeConfig
     $upgraded = (& $fixtureClaude plugin list --json) | ConvertFrom-Json
     $upgradedItem = @($upgraded | Where-Object { $_.id -eq 'prodev@claude-pro-dev-local' -and $_.scope -eq 'user' })
-    Assert ($upgradedItem.Count -eq 1 -and $upgradedItem[0].version -eq '0.3.0') 'v0.2 upgrades to v0.3 in the same user-scope marketplace'
+    Assert ($upgradedItem.Count -eq 1 -and $upgradedItem[0].version -eq '0.3.1') 'v0.3.0 upgrades to v0.3.1 in the same user-scope marketplace'
 } finally { $env:CLAUDE_CONFIG_DIR = $beforeFixtureEnv }
 Assert ($true) 'a second install and verification succeed'
 $marketplaceDataPath = Join-Path $config 'plugins\known_marketplaces.json'

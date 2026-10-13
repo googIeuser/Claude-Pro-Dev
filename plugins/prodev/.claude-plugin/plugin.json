@@ -1,7 +1,7 @@
 {
   "name": "prodev",
-  "version": "0.3.0",
-  "description": "Subscription development helpers, Sonnet/Opus advisor workflow and optional native Agent Teams. Requires Claude Code 2.1.287+.",
+  "version": "0.3.1",
+  "description": "Subscription development helpers, Sonnet/Opus advisor workflow and optional native Agent Teams. Requires Claude Code 2.1.293+.",
   "author": { "name": "Musa" },
   "license": "MIT"
 }

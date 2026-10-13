@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — 2026-10-13
+
+- Add session-only `/prodev-model` choices for executor/advisor models and separate reasoning effort, including full 5.5 IDs, inherited settings, and executor auto mode.
+- Apply explicit model choices at the native spawn boundary and effort choices to Pro Dev Agent calls; unrelated agents and global settings are preserved.
+- Advisor workflow now keeps the main model as coordinator and delegates implementation to the selectable executor. Auto selection is workflow guidance, not a deterministic classifier or savings guarantee.
+- Require Claude Code 2.1.293+ for Haiku 5.5; update the CI matrix to 2.1.293/2.1.296.
+- Add native routing regression tests and real local-command smoke coverage. Update both READMEs and the self-contained installer.
+
 ## 0.3.0 — 2026-10-13
 
 - Add `/prodev:advisor`: a Sonnet executor turn with focused read-only Opus advice through native Claude Code subagents and subscription login.

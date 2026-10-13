@@ -1,4 +1,4 @@
-# Mimari — v0.3
+# Mimari — v0.3.1
 
 [English](ARCHITECTURE.md)
 
@@ -6,11 +6,11 @@ Kökteki marketplace tek `prodev` eklentisi sunar. Eklenti; native Mods modülü
 
 | Bileşen | Görevi |
 | --- | --- |
-| `hooks/register.js` | Host olayları, sekiz yerel komut, kullanım göstergesi, kuyruk, kayıtlar ve ajan etkinliği |
+| `hooks/register.js` | Host olayları, dokuz yerel komut, oturum model tercihleri, kullanım göstergesi, kuyruk ve kayıtlar |
 | `hooks/policy.js` | Sabit mühendislik bağlamı, çıktı maskeleme/filtresi, kontrol profili yapı doğrulaması |
 | `agents/advisor.md` | Opus; yalnız Read/Grep/Glob; stratejik öneri ve inceleme |
 | `agents/executor.md` | Sonnet; verilen kapsamda uygulama |
-| `skills/advisor/SKILL.md` | Ana oturumda Sonnet turu ve gerektiğinde normal danışman alt ajanı |
+| `skills/advisor/SKILL.md` | Ana modelin normal uygulayıcı alt ajanını ve gerektiğinde danışmanı koordine etmesi |
 | `skills/team/SKILL.md` | İsimli ekip üyeleri ve ayrı dosya sahipliğiyle yerel ekip koordinasyonu |
 | `skills/engineering/SKILL.md` | İsteğe bağlı mühendislik kontrol listesi |
 | `scripts/install.template.ps1` | Yedekli kullanıcı kapsamlı kurulum ve isteğe bağlı ekip ayarı |
@@ -22,7 +22,9 @@ Kökteki marketplace tek `prodev` eklentisi sunar. Eklenti; native Mods modülü
 
 Tekrar okuma sayacı başarılı parametreleri ajan başına gözler, okumayı engellemez. Edit, shell, MCP ve açıkça seçilen proje kontrolü imzaları temizleyip gözlenen revision'ı ilerletir. Dış değişiklikler görülmez. PASS sayısal exit zero gerektirir. Son 50 kayıt tutulur; sonraki gözlenen etkinlik kaydı eski yapar. Rapor şeması 2'dir; kaldırılan blocked sayacı, prompt ve çıktı gövdeleri içermez.
 
-Advisor ve team skill'leri açıkça çağrılır ve host'un model altyapısını kullanır; deterministik yardımcı komutların içinde model isteği yoktur. Advisor skill'i o tur için Sonnet ister, gerektiğinde salt okunur Opus rolüne danışır. Bağlam açıkça aktarılmalıdır. Danışman çağrısında ajan adı verilmemesi, ekip açıkken de normal alt ajan kalmasını sağlar. Model erişimi abonelik ve host kısıtlamalarına bağlıdır.
+Advisor ve team skill'leri açıkça çağrılır ve host'un model altyapısını kullanır; deterministik yardımcıların içinde model isteği yoktur. Advisor skill'i ana modeli koordinatör olarak korur, uygulamayı uygulayıcıya devreder ve gerektiğinde salt okunur danışmana başvurur. Varsayılan Sonnet/Opus'tur; görev bağlamı açıkça aktarılır. Ajan adı verilmemesi, ekip açıkken de normal alt ajan kalmasını sağlar. Model erişimi abonelik ve host kısıtlamalarına bağlıdır.
+
+`/prodev-model`, rol başına model/effort tercihini oturum belleğinde tutar. `skill.prompt`, iki akışa güncel tercihleri ekler; genel Core sabit kalır. `agent.spawn` yalnız açıkça seçilmiş Pro Dev modellerini uygular. Agent `tool.call` seçilen effort'u native engine'e aktarır; inherit çağrının mevcut değerini korur. Reset açık tercihleri bırakır. Diğer ajanlar, izinler ve genel ayarlar değişmez. Rapor istenen tercihleri gösterir; gerçek host değerinin garantisi değildir. Auto, akışa seçim talimatı verir ve görev için seçilen modeli korur; deterministik metin sınıflandırması yapmaz. Bölünmüş pencere effort davranışı host'a bağlıdır.
 
 Team skill'i etkileşimli yerel Agent Teams gerektirir. Ekip klasörlerini, görevleri ve mesajları Claude Code yönetir; Pro Dev çalışma zamanı ekip ayar dosyası üretmez. Her üyeye hedef, kanıt, dosya sahipliği ve bağımlılıklar verilir. `/prodev-flow` yalnız gözlenen spawn/tur etkinliğini gösterir; kalıcı ekip durumu değildir.
 

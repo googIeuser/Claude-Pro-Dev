@@ -4,9 +4,9 @@
 
 [Türkçe](README.tr.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-Pro Dev adds a usage display, local helper commands, a **Sonnet executor + Opus advisor** workflow, and optional **Agent Teams**. Sign in to Claude Code with your subscription. No separate API key, API server, proxy, or paid API integration is required by this plugin.
+Pro Dev adds a usage display, local helper commands, a **selectable executor + advisor** workflow, and optional **Agent Teams**. Defaults are Sonnet for implementation and Opus for advice; Haiku and separate reasoning levels are available. Sign in with your subscription. No separate API key, API server, proxy, or paid API integration is required by this plugin.
 
-Version **0.3.0** · Windows PowerShell **5.1+** · Claude Code **2.1.287+**. Use a current Claude Code release for experimental team features. Independent community project by [googIeuser](https://github.com/googIeuser); not affiliated with Anthropic.
+Version **0.3.1** · Windows PowerShell **5.1+** · Claude Code **2.1.293+** (needed for Haiku 5.5). Update Claude Code with `claude update`. Independent community project by [googIeuser](https://github.com/googIeuser); not affiliated with Anthropic.
 
 ## 1. Install
 
@@ -41,7 +41,7 @@ Restart Claude Code in your project folder. Check `/plugin`, then `/prodev`.
 | Your task | Use | What happens |
 | --- | --- | --- |
 | A small fix or ordinary development | Your normal prompt | Your current model uses the short Pro Dev engineering guidance. |
-| A complex change or difficult bug | `/prodev:advisor <task>` | Sonnet handles this turn; a read-only Opus advisor gives focused guidance when useful. |
+| A complex change or difficult bug | `/prodev:advisor <task>` | Your session model coordinates an implementation worker and optional read-only advisor. |
 | Independent work across modules | `/prodev:team <task>` | The lead coordinates a small native team with separate assignments and file ownership. |
 | Usage or diagnostics | `/prodev`, `/prodev-doctor` | Local helpers show host readings without starting a model request. |
 
@@ -51,11 +51,41 @@ Restart Claude Code in your project folder. Check `/plugin`, then `/prodev`.
 /prodev:advisor Fix the session refresh bug. Inspect the code, consult the advisor about the approach, implement the fix, and run the affected tests.
 ```
 
-The executor reads the code, consults `prodev:advisor` for complex work, then implements and verifies the result. A second consultation can help with a blocker or difficult final review. Obvious tasks can skip the advisor.
+Your main session coordinates `prodev:executor` for implementation and verification, with `prodev:advisor` consulted for complex work. A second consultation can help with a blocker or difficult final review. Obvious tasks can skip the advisor. The extra coordinator/delegation can add usage and latency.
 
 This adapts the [advisor pattern](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) with [Claude Code subagents](https://code.claude.com/docs/en/sub-agents). The platform's actual Advisor Tool is an API feature; this plugin uses ordinary Claude Code agents instead. The advisor gets the supplied task context and relevant files, not an automatic copy of the complete conversation.
 
-The skill requests Sonnet for its turn; your session model resumes on the next prompt. The advisor requests Opus. Actual availability depends on your subscription and host restrictions. If a model or agent is unavailable, the workflow must report that and continue honestly with an available option. Global model and effort settings are preserved.
+The main session keeps your current model. Worker/advisor choices are described below. Actual availability depends on your subscription and host restrictions. If a model or agent is unavailable, the workflow must report that and label any fallback honestly. Global model and effort settings are preserved.
+
+### Choose models and reasoning
+
+Set choices before invoking either workflow:
+
+```text
+/prodev-model executor haiku low
+/prodev-model advisor opus high
+/prodev:advisor Fix the parser's empty-input case and run its tests.
+```
+
+Or let the workflow choose the implementation model for each assignment:
+
+```text
+/prodev-model executor auto medium
+/prodev:team Review the parser and improve its tests in separate files.
+```
+
+`auto` is the workflow's model-selection guidance: Haiku for narrow, clearly specified assignments; Sonnet for complex, ambiguous, or multi-file work. It is not a separate classifier, quota optimizer, or guarantee of which model is available. The chosen model is announced before delegation.
+
+| Choice | Values |
+| --- | --- |
+| Role | `executor`, `advisor` |
+| Model | `haiku`, `sonnet`, `opus`, `inherit`, or explicit `claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` |
+| Automatic routing | `auto`, for executor only |
+| Reasoning effort | `low`, `medium`, `high`, `xhigh`, `max`, `inherit` |
+
+Omitted effort means `inherit`, preserving the caller/host setting. `inherit` model follows the parent model. Aliases follow host resolution; explicit IDs request that exact version. `/prodev-model` shows choices, and `/prodev-model reset` restores Sonnet/Opus defaults with inherited effort. Choices apply to **new Pro Dev agents in this session**, disappear on reload/exit, and do not affect unrelated agents. Existing agents keep their settings. A new model command without effort resets that role's effort to inherit.
+
+Use native `/model` and `/effort` for your main session. Check effective worker model/effort in `/tasks`; host policy, environment overrides, and model capability limits can take precedence. Use in-process teams for individual effort control; split-pane behavior varies by host. The 5.5 models use adaptive reasoning: there is no supported per-agent thinking-off switch here. Higher effort can consume more allowance; equal effort labels do not imply equal thinking across models. [Official model configuration](https://code.claude.com/docs/en/model-config).
 
 ### Agent Teams example
 
@@ -78,7 +108,7 @@ Teams are experimental and unavailable in `claude -p` mode. An unavailable team 
 
 ## 3. Local helper commands
 
-These eight commands are deterministic and do not start a model turn. The two workflow skills above do use models.
+These nine commands are deterministic and do not start a model turn. The two workflow skills above do use models.
 
 | Command | Purpose |
 | --- | --- |
@@ -90,6 +120,7 @@ These eight commands are deterministic and do not start a model turn. The two wo
 | `/prodev-next` | Simple next-step suggestions. |
 | `/prodev-checks [profile \| run <name>]` | Verification receipts or an explicitly selected project check. |
 | `/prodev-report` | Session metrics JSON without prompt or tool bodies. |
+| `/prodev-model [executor\|advisor <model> [effort] \| reset]` | Choose model and reasoning for future Pro Dev agents. |
 | `/prodev-filter on` / `off` | Toggle long shell/MCP output shortening. Output redaction stays active. |
 
 5-hour and 7-day usage readings come from Claude Code. Missing readings show `unknown`. Context fill and cache ratio are separate measurements, not remaining allowance. Queues, receipts, and counters disappear when the session ends.

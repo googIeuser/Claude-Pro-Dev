@@ -1,6 +1,6 @@
 ---
 name: advisor
-description: Read-only strategic advisor for the Pro Dev advisor workflow. Consult for architecture, blockers, or final review when requested.
+description: Read-only strategic advisor with an Opus default and selectable model/effort for architecture, blockers, or final review.
 tools: Read, Grep, Glob
 model: opus
 ---

@@ -1,4 +1,4 @@
-# Architecture — v0.3
+# Architecture — v0.3.1
 
 [Türkçe](ARCHITECTURE.tr.md)
 
@@ -6,11 +6,11 @@ The root marketplace exposes one `prodev` plugin. It contains a native Mods modu
 
 | Component | Role |
 | --- | --- |
-| `hooks/register.js` | Host events, eight immediate commands, usage HUD, queue, receipts, activity tracking |
+| `hooks/register.js` | Host events, nine immediate commands, session model choices, usage HUD, queue, receipts, activity tracking |
 | `hooks/policy.js` | Stable engineering context, output redaction/filtering, structural check-profile validation |
 | `agents/advisor.md` | Opus; Read/Grep/Glob only; strategic guidance and review |
 | `agents/executor.md` | Sonnet; implementation within assigned scope |
-| `skills/advisor/SKILL.md` | Sonnet main-session turn, focused ordinary advisor consultations |
+| `skills/advisor/SKILL.md` | Main-model coordination of an ordinary implementation worker and optional advisor |
 | `skills/team/SKILL.md` | Native team coordination with named teammates and distinct file ownership |
 | `skills/engineering/SKILL.md` | Optional engineering checklist |
 | `scripts/install.template.ps1` | Transactional user-scope installer and optional teams setting |
@@ -22,7 +22,9 @@ The root marketplace exposes one `prodev` plugin. It contains a native Mods modu
 
 Repeated-read tracking observes successful Read/Grep/Glob parameters per agent without suppressing reads. Edits, shells, MCP calls, and explicit project checks clear signatures and advance an observed revision. External edits are not detected. Receipts require numeric exit zero for PASS, retain only the last 50 records, and become stale after observed activity. Reports use schema 2, omit the removed blocked counter, and contain no prompt or output bodies.
 
-Advisor and team skills are explicitly invoked and use the host's model runtime. They do not run inside the deterministic command handlers. The advisor skill requests Sonnet for the current turn and calls the read-only Opus role only when useful. Context must be supplied explicitly. Omitting an agent name keeps this an ordinary consultation even with teams enabled. Model access remains subject to plan and host restrictions.
+Advisor and team skills are explicitly invoked and use the host's model runtime. They do not run inside deterministic command handlers. The advisor skill preserves the main model as coordinator, delegates implementation to an executor, and consults a read-only advisor when useful. Defaults are Sonnet/Opus; all agents need explicit task context. Omitting agent names keeps the advisor workflow ordinary even when teams are enabled. Model access remains subject to plan and host restrictions.
+
+`/prodev-model` stores model and effort choices for each Pro Dev role in session memory. `skill.prompt` appends current choices to the two workflow prompts; generic Core stays stable. `agent.spawn` applies explicitly selected models only to those roles. The Agent `tool.call` forwards explicitly selected effort before the native engine runs. Inherit effort leaves the caller value untouched; reset releases explicit overrides. Unrelated agents, permissions, and global model/effort configuration are unchanged. Reports show requested choices, not a guarantee of effective host values. Auto executor selection is workflow guidance: it preserves the chosen model from the assignment, rather than classifying task text deterministically. Split-pane effort handling remains a host limitation.
 
 The team skill requires native interactive Agent Teams. Claude Code owns team directories, shared tasks, and messages; Pro Dev does not pre-author runtime team configuration. Teammates receive objectives, evidence, file ownership, and dependencies. `/prodev-flow` shows observed spawn/turn activity only and cannot reconstruct a full persistent team state.
 

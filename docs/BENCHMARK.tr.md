@@ -10,7 +10,7 @@ Native testleri, ayrı kurulum/paket testlerini ve `scripts/live-smoke.ps1` dosy
 
 ## Advisor senaryosu (giriş yapılmış oturum)
 
-Bilinen hata ve bağımsız kabul koşulları içeren ayrı repo kullan. `/prodev:advisor <görev>` çalıştır. Kullanılabiliyorsa Sonnet seçildiğini, karmaşık görevde salt okunur Opus danışmana ilgili bağlamın aktarıldığını, uygulayıcının işi tamamladığını ve kontrollerin geçtiğini gözle. Basit görevle gereksiz danışmanın atlandığını kontrol et. Model erişimi yoksa alternatifin dürüstçe bildirildiğini kaydet. Sonraki normal promptta oturum modelinin geri döndüğünü doğrula. Skill'in niyeti yerine gerçek model ve danışma sayısını kaydet.
+Bilinen hata ve bağımsız kabul koşulları içeren ayrı repo kullan. `/prodev:advisor <görev>` çalıştır. Seçilen uygulayıcı ve salt okunur danışmana ilgili bağlamın aktarıldığını, işin tamamlandığını ve bağımsız kontrollerin geçtiğini gözle. Basit görevde gereksiz danışma atlanmalı; ana model değişmemeli. `/prodev-model executor haiku low`, ayrı danışman effort'u, auto, inherit ve reset'i dene; gerçek değerleri `/tasks` ile kontrol edip model değişimlerini kaydet. Auto seçimini belirtmeli; sınıflandırma garantisi değil akış talimatıdır. Niyet yerine gerçek model ve danışma sayısını kaydet.
 
 ## Ekip senaryosu (yalnız etkileşimli)
 

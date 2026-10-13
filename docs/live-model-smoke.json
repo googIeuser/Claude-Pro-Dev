@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-13",
+  "pluginVersion": "0.3.1",
+  "claudeVersion": "2.1.296",
+  "scope": "Three small arithmetic smoke cases; not a coding-quality or quota benchmark",
+  "modelEvidence": "Resolved model IDs from completed CLI modelUsage; effort values from Agent invocation arguments",
+  "cases": [
+    {
+      "name": "explicit-haiku-executor",
+      "coordinator": "claude-sonnet-5-5",
+      "executor": "claude-haiku-5-5",
+      "executorRequestedEffort": "low",
+      "expectedResult": 323,
+      "observedResult": 323,
+      "agentCalls": 1,
+      "permissionDenials": 0,
+      "fileOrShellToolCalls": 0,
+      "passed": true
+    },
+    {
+      "name": "sonnet-advisor-and-executor",
+      "coordinator": "claude-haiku-5-5",
+      "advisor": "claude-sonnet-5-5",
+      "advisorRequestedEffort": "high",
+      "executor": "claude-sonnet-5-5",
+      "executorRequestedEffort": "medium",
+      "expectedResult": 437,
+      "observedResult": 437,
+      "agentCalls": 2,
+      "permissionDenials": 0,
+      "fileOrShellToolCalls": 0,
+      "passed": true
+    },
+    {
+      "name": "auto-narrow-task",
+      "coordinator": "claude-sonnet-5-5",
+      "requestedExecutor": "auto",
+      "executor": "claude-haiku-5-5",
+      "executorRequestedEffort": "medium",
+      "expectedResult": 91,
+      "observedResult": 91,
+      "agentCalls": 1,
+      "permissionDenials": 0,
+      "fileOrShellToolCalls": 0,
+      "passed": true
+    }
+  ],
+  "excludedCalibration": {
+    "outcome": "incomplete; no successful child model run",
+    "causes": [
+      "The initial workflow attempted a full model ID in the Agent tool's alias-only model argument; instructions were corrected to use an alias and pin the ID at spawn",
+      "The test fixture exposed only Agent and omitted the read-only advisor's required Read/Grep/Glob tools; the fixture was corrected"
+    ]
+  },
+  "limitations": [
+    "Requested effort forwarding does not measure thinking quality or guarantee a provider's effective reasoning budget",
+    "Auto selection quality on complex work and interactive native team behavior remain unmeasured",
+    "No general coding-quality, latency, or subscription-savings claim"
+  ]
+}

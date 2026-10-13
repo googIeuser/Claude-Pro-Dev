@@ -10,7 +10,7 @@ Run native tests, isolated installer/release suites, and `scripts/live-smoke.ps1
 
 ## Advisor scenario (signed-in session)
 
-Use an isolated repository with a known bug and independent acceptance cases. Run `/prodev:advisor <task>`. Check that Sonnet is selected when available, the read-only Opus advisor receives relevant context for a complex task, the executor implements the result, and checks actually pass. Try a trivial task to check that unnecessary consultation is skipped. Record unavailable-model fallbacks honestly. Verify that the next ordinary prompt resumes the session model. Record actual model identities and consultations, not just the skill's intended behavior.
+Use an isolated repository with a known bug and independent acceptance cases. Run `/prodev:advisor <task>`. Check the selected implementation worker and read-only advisor receive relevant context, implementation completes, and independent checks pass. Try a trivial task to check unnecessary consultation is skipped. Verify that the main model remains unchanged. Test `/prodev-model executor haiku low`, separate advisor effort, executor auto, inherit, and reset; inspect actual values in `/tasks` and record substitutions. Auto must announce its choice; it is prompt guidance, not a classifier guarantee. Record actual model identities and consultations, not just intended behavior.
 
 ## Team scenario (interactive only)
 

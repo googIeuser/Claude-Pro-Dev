@@ -18,9 +18,9 @@ try {
     }
     try {
         $version = Run-Claude -Arguments @('--version')
-        if ($version -notmatch '(\d+\.\d+\.\d+)' -or [version]$Matches[1] -lt [version]'2.1.287') { throw 'Incompatible binary.' }
+        if ($version -notmatch '(\d+\.\d+\.\d+)' -or [version]$Matches[1] -lt [version]'2.1.293') { throw 'Incompatible binary.' }
         Record 'claude-version' 'pass' ("Claude Code " + $Matches[1])
-    } catch { Record 'claude-version' 'fail' 'Install Claude Code 2.1.287+ and make claude available in PATH.' }
+    } catch { Record 'claude-version' 'fail' 'Install Claude Code 2.1.293+ and make claude available in PATH.' }
     $expected = $null
     try {
         $manifest = Get-Content -LiteralPath (Join-Path $package 'plugins\prodev\.claude-plugin\plugin.json') -Raw -Encoding UTF8 | ConvertFrom-Json

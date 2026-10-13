@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         shell: [powershell, pwsh]
-        claude: ['2.1.287', '2.1.289']
+        claude: ['2.1.293', '2.1.296']
     env:
       DISABLE_AUTOUPDATER: '1'
     defaults:

@@ -1,26 +1,29 @@
-# Verification — v0.3.0, 2026-10-13
+# Verification — v0.3.1, 2026-10-13
 
-Local host: Claude Code **2.1.292**, Windows, Windows PowerShell 5.1 and PowerShell 7. Current hosted results belong on the [Actions page](https://github.com/googIeuser/Claude-Pro-Dev/actions); local checks are not hosted CI results.
+Local host: Claude Code **2.1.296**, Windows, Windows PowerShell 5.1 and PowerShell 7. Current hosted results belong on the [Actions page](https://github.com/googIeuser/Claude-Pro-Dev/actions); local checks are not hosted CI results.
 
 | Check | Evidence and scope |
 | --- | --- |
 | Strict marketplace/plugin validation | Passed in the actual Claude Code CLI. |
-| Native Mods tests | 47 passed, 0 failed. External engine work is controlled. Command/file-name blocking is removed; host permission refusals pass through. Output redaction/filtering, receipts, usage, and queue behavior remain covered. |
+| Native Mods tests | 55 passed, 0 failed. External engine work is controlled. Eight model-choice cases cover spawn model/full ID/inheritance, Agent effort forwarding, invalid-input preservation, auto/reset, workflow context, unrelated agents, and no model request from the helper. Existing permissions, output filtering/redaction, receipts, usage, and queue cases remain covered. |
 | Actual CLI loading | Initialization discovers `prodev:advisor` and `prodev:executor` agents, plus `prodev:advisor` and `prodev:team` skills/commands. This proves discovery, not model behavior. |
-| Actual local helper smoke | 14 helper results, zero model turns; eight immediate helpers registered; real Windows processes return exit 0 and 7; synthetic output secret is masked. |
+| Actual local helper smoke | 20 helper results, zero model turns; nine immediate helpers registered; independent model/effort choices, auto, and reset persist correctly in a real session. Real Windows processes return exit 0 and 7; synthetic output secret is masked. |
+| Signed-in model smoke | Three small arithmetic cases passed: explicit Haiku 5.5 executor, Sonnet 5.5 advisor/executor with separate requested high/medium effort, and auto selection of Haiku for a narrow task. Main coordinator models were preserved. Resolved model IDs came from CLI usage; Agent arguments show requested effort. No file/shell tools or permission denials. [Sanitized evidence](live-model-smoke.json). |
 | Isolated installer, both shells | Default teams preference preserved; explicit teams flag enabled with unrelated environment entries preserved; repeat/source/embedded installation, version upgrade, malformed settings rejection, and rollback pass. Existing user profile is not modified by these tests. |
 | Release packaging, both shells | Agent roles and workflow skills are embedded; allowlist, payload/checksum integrity, reproducibility, and source-root protection pass. |
-| Metrics, acceptance, doctor, both shells | API billing estimates omitted; token categories retained; original bug rejected and six fixed cases accepted; negative diagnostics leave the test suite with exit zero. |
+| Earlier unchanged collector evidence (v0.3.0) | Billing estimates omitted; separate token categories retained; original bug rejected and six fixed cases accepted in both shells. This is not a model-routing benchmark. |
 
-The changed permission-chain/profile tests and billing-metric assertion were observed failing before the implementation. The installer test also failed on the absent `-EnableAgentTeams` parameter before it was added. Destructive-looking commands use controlled tool responses; no destructive real command was executed.
+Seven new model-routing assertions were observed failing before implementation; reset/preserve-caller behavior was also observed failing before correction. Unrelated-agent behavior remains a preservation case. Destructive-looking command tests use controlled tool responses; no destructive real command was executed.
+
+One live calibration was incomplete: a full ID was attempted in the Agent tool's alias-only model field, and the fixture omitted the advisor's required read-only tools. Workflow instructions now require family aliases at the tool boundary and pin exact IDs at native spawn; the fixture was corrected. The repeated Sonnet advisor/executor case passed. Calibration is retained separately in the sanitized evidence rather than counted as a successful case.
 
 ## Not verified by these checks
 
-- Actual Sonnet/Opus selection and advice quality under a subscription, model-unavailable fallbacks, or return to the session model after a skill turn.
+- General advice/coding quality, model-unavailable fallbacks, Opus execution in this revision, or auto-selection quality beyond the narrow smoke task. Requested Agent effort is observed; actual provider reasoning budgets/quality are not measured.
 - Native interactive teammate creation, task/message coordination, shutdown, resume behavior, or terminal/Desktop usability of the new workflows.
 - Account-wide quota accuracy, reduced allowance consumption, or general task-quality improvement.
-- Current changes on every older supported binary or organization-managed configuration. CI is configured for Claude 2.1.287/2.1.289 and both PowerShell shells.
+- Current changes on every older binary or organization-managed configuration. The minimum is 2.1.293 for Haiku 5.5; CI is configured for 2.1.293/2.1.296 and both PowerShell shells.
 
 Use the signed-in scenarios in [the benchmark protocol](BENCHMARK.md) to test model/team behavior. Those scenarios consume account allowance. The self-contained installer is generated from source; rebuild after embedded changes. Historical [v0.1/v0.2 verification](VERIFICATION.v0.2.md) and [pilot results](PILOT.md) do not establish v0.3 workflow behavior or savings.
 
-Türkçe: Native testler, iki PowerShell sürümündeki ayrı kurulum/paket kontrolleri ve model isteği açmayan gerçek CLI yardımcıları doğrulandı. Yeni ajan/komutlar host tarafından bulunuyor. Canlı Sonnet/Opus danışma kalitesi ve yerel ekip koordinasyonu henüz sınanmadı; bunlar için giriş yapılmış etkileşimli oturum gerekir. Tasarruf iddiası yoktur.
+Türkçe: 55 native test, iki PowerShell sürümündeki ayrı kurulum/paket kontrolleri ve 20 model turu açmayan gerçek CLI sonucu doğrulandı. Üç küçük canlı denemede Haiku/Sonnet 5.5 çalıştı, ayrı düşünme tercihleri Agent çağrılarına aktarıldı ve auto basit görevde Haiku seçti. Bir ilk kalibrasyon başarısızlığı ayrıca kaydedildi. Genel kod kalitesi, karmaşık işlerde otomatik seçim, gerçek düşünme bütçeleri ve canlı ekip koordinasyonu ölçülmedi. Tasarruf iddiası yoktur.
