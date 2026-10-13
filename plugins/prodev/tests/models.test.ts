@@ -16,7 +16,7 @@ test('executor model choice reaches the actual spawn boundary without changing t
   on('agent.spawn', ($, e) => ({ agentId: e.subagentType, model: e.model ?? 'definition-default' }));
   await cmd($, 'executor haiku low');
   expect((await spawn($, 'prodev:executor', 'sonnet')).model).toBe('haiku');
-  expect((await spawn($, 'prodev:advisor', 'opus')).model).toBe('opus');
+  expect((await spawn($, 'prodev:advisor', 'opus')).model).toBe('claude-opus-5-5');
 });
 
 test('full model ID reaches the spawn boundary and inherited model follows the parent', async ($, on) => {
@@ -83,4 +83,39 @@ test('unrelated agent spawns are not routed by Pro Dev settings', async ($, on) 
   on('agent.spawn', ($, e) => ({ agentId: 'one', model: e.model ?? 'default' }));
   await cmd($, 'executor haiku low');
   expect((await spawn($, 'Explore', 'opus')).model).toBe('opus');
+});
+
+for (const [role, family, expectedModel] of [
+  ['executor', 'sonnet', 'claude-sonnet-5-5'],
+  ['advisor', 'opus', 'claude-opus-5-5'],
+]) {
+  test(role + ' starts on its pinned 5.5 model with medium effort', async ($, on) => {
+    engine(on);
+    on('agent.spawn', ($, e) => ({ agentId: 'default', model: e.model ?? 'unset' }));
+    on('tool.call', ($, e) => ({ result: { effort: e.effort ?? 'unset' } }));
+    expect((await spawn($, 'prodev:' + role, family)).model).toBe(expectedModel);
+    expect((await $.tool.call({ tool: 'Agent', subagent_type: 'prodev:' + role, prompt: 'Inspect', description: 'Inspect', effort: 'high' })).result.effort).toBe('medium');
+  });
+}
+
+test('reset restores pinned role models and medium effort after user overrides', async ($, on) => {
+  engine(on);
+  on('agent.spawn', ($, e) => ({ agentId: 'reset', model: e.model ?? 'unset' }));
+  on('tool.call', ($, e) => ({ result: { effort: e.effort ?? 'unset' } }));
+  await cmd($, 'executor haiku low');
+  await cmd($, 'advisor sonnet high');
+  await cmd($, 'reset');
+  expect((await spawn($, 'prodev:executor')).model).toBe('claude-sonnet-5-5');
+  expect((await spawn($, 'prodev:advisor')).model).toBe('claude-opus-5-5');
+  expect((await $.tool.call({ tool: 'Agent', subagent_type: 'prodev:executor', prompt: 'Inspect', description: 'Inspect', effort: 'low' })).result.effort).toBe('medium');
+});
+
+test('a model choice without effort uses medium while explicit inherit preserves caller effort', async ($, on) => {
+  engine(on);
+  on('tool.call', ($, e) => ({ result: { effort: e.effort ?? 'unset' } }));
+  const input = { tool: 'Agent', subagent_type: 'prodev:executor', prompt: 'Inspect', description: 'Inspect', effort: 'high' };
+  await cmd($, 'executor haiku');
+  expect((await $.tool.call(input)).result.effort).toBe('medium');
+  await cmd($, 'executor haiku inherit');
+  expect((await $.tool.call(input)).result.effort).toBe('high');
 });

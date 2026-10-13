@@ -45,7 +45,7 @@ $report = ($texts[12] -replace '^prodev: ', '') | ConvertFrom-Json
 Assert ($report.receipts.Count -eq 2 -and $report.receipts[1].exitCode -eq 7) 'live session report carries actual receipts'
 Assert ($texts[16] -match 'executor model: haiku; effort: low' -and $texts[16] -match 'advisor model: sonnet; effort: high') 'independent model and effort choices persist within a real session'
 Assert ($texts[17] -match 'executor model: auto; effort: medium') 'auto selection can be requested without a model call'
-Assert ($texts[19] -match 'executor model: sonnet; effort: inherit' -and $texts[19] -match 'advisor model: opus; effort: inherit') 'reset restores model defaults and inherited effort'
+Assert ($texts[19] -match 'executor model: claude-sonnet-5-5; effort: medium' -and $texts[19] -match 'advisor model: claude-opus-5-5; effort: medium') 'reset restores pinned 5.5 models and medium effort'
 $summary = [ordered]@{ claudeVersion = (& (Get-Command claude -CommandType Application).Source --version); helperResults = $results.Count; modelTurns = 0; workflowDiscovery = 'advisor/executor agents and advisor/team commands'; checks = @(@{ name = 'unit'; status = 'pass'; exitCode = 0 }, @{ name = 'negative'; status = 'fail'; exitCode = 7 }); queue = 'add/list; headless draft reports unavailable'; commandConflicts = 0 }
 [IO.File]::WriteAllText((Join-Path $OutputDirectory 'live-smoke.json'), ($summary | ConvertTo-Json -Depth 8), $utf8)
 Write-Host 'Live CLI smoke passed; no model request. This does not replace terminal/Desktop screen testing.'

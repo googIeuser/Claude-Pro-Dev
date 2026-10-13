@@ -1,4 +1,6 @@
-# Mimari — v0.3.2
+# Mimari — v0.3.3
+
+Yeni kurulum `claude-opus-5-5` ana modelini ve Opus/Sonnet/Haiku 5.5 için medium eforlu kanonik `modelSettings` girdilerini ekler. `-ResetModelDefaults` istenmedikçe kişisel seçimler korunur; efor sınırı gibi diğer alanlar saklanır. Rol varsayılanları Sonnet 5.5 uygulayıcı ve Opus 5.5 danışmandır, ikisi de medium. Komutta efor yazılmazsa medium kullanılır; açık inherit çağıranın eforunu korur. Sıfırlama sabit profili geri getirir; yardımcı komutla açıkça zorlanmadıkça çağıranın farklı model ailesi korunur. Ana model/efor yerleşik komutlarla değiştirilebilir; ortamın sınırlamaları önceliklidir.
 
 0.3.2'de terminal akışları ve MCP metin parçaları her sonuç için ortak 12.000 görünür karakter sınırı kullanır. Hata içeren parçalara öncelik verilir; atlanan metin tek ortak bildirimle boş kalabilir. Metin dışı bloklar, yapılandırılmış veri ve metadata korunur. Bu, tüm veri/token sınırı değildir. Oturum eki yalnızca rol seçimlerini içerir; görev dağıtım kuralları sabit skill'lerde kalır. [Ölçümler](OPTIMIZATION.md).
 

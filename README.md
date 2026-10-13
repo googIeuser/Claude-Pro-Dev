@@ -5,7 +5,7 @@
 **Choose your coding worker, ask a specialist, and keep track of the session.**
 
 [![CI](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml/badge.svg)](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.2-8b5cf6)
+![Version](https://img.shields.io/badge/version-0.3.3-8b5cf6)
 ![Windows](https://img.shields.io/badge/Windows-PowerShell_5.1%2B-0078d4)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.293%2B-f59e0b)
 [![MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
@@ -23,7 +23,7 @@ Pro Dev is a Windows plugin for Claude Code. Your current model coordinates the 
 Use your signed-in **Claude subscription**. The plugin requires no separate API key, API server, proxy, npm, Python, or MCP server. Independent community project by [googIeuser](https://github.com/googIeuser).
 
 > [!TIP]
-> New here? Install, restart Claude Code **inside your code project**, then try the three-command example below. The default worker is **Sonnet**, and the default advisor is **Opus**.
+> New here? Install and restart Claude Code **inside your code project**. Fresh defaults are **Opus 5.5 main**, **Sonnet 5.5 worker**, **Opus 5.5 advisor**, with **medium effort for all three**. Haiku 5.5 is an optional worker choice.
 
 ## Get started
 
@@ -62,23 +62,28 @@ Open the folder containing the code you want to change, then start `claude`. If 
 > [!IMPORTANT]
 > Installation saves **manual compaction**: automatic compaction is disabled, so use `/compact` when needed. Settings and the old package are backed up. The optional teams flag is preserved unless you explicitly enable it. [See all installation changes](#installation-settings--removal).
 
-### 3 · Inside Claude Code: choose roles and give a complete task
+### 3 · Inside Claude Code: start with the defaults
 
 ```text
-/prodev-model executor sonnet medium
-/prodev-model advisor opus high
+/prodev-model
 /prodev:advisor Fix the parser so negative integers keep their sign. Ask the advisor about the approach, delegate the fix to the executor, and run the parser tests.
 ```
 
-The first two commands save choices locally without starting a model turn. The third starts the model workflow. Describe the affected behavior and expected result; a bare number such as `31` does not identify a repository issue or task by itself.
+The first command shows role choices without a model turn. The second starts the workflow; no manual model setup is needed on a fresh install. Describe the affected behavior and expected result; a bare number such as `31` does not identify a repository issue or task by itself.
 
 ## How the workflow works
 
-| Role | Responsibility | Default |
-| --- | --- | --- |
-| Your main session | Understands the request, delegates, and reports the result. | Your current model |
-| `prodev:advisor` | Reads relevant code and recommends an approach; cannot edit or run shell commands. | Opus |
-| `prodev:executor` | Implements the assigned change and verifies it. | Sonnet |
+| Role | Responsibility | Default model | Effort |
+| --- | --- | --- | --- |
+| Your main session | Understands the request, delegates, and reports the result. | **Opus 5.5** | **medium** |
+| `prodev:advisor` | Reads relevant code and recommends an approach; cannot edit or run shell commands. | **Opus 5.5** | **medium** |
+| `prodev:executor` | Implements the assigned change and verifies it. | **Sonnet 5.5**; Haiku 5.5 selectable | **medium** |
+
+Fresh installation saves the main model and per-model effort defaults. Existing personal settings survive ordinary reinstallation. To apply these defaults to an existing setup, run the downloaded installer with `-ResetModelDefaults`. Project, managed, environment, or launch overrides may still take precedence.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -ResetModelDefaults
+```
 
 Use **`/prodev:advisor <task>`** for difficult bugs or changes that benefit from a second opinion. The advisor is optional for obvious tasks and may be consulted again for a blocker or difficult review. Your main session keeps its model; role choices apply to delegated agents.
 
@@ -93,6 +98,7 @@ For ordinary development, you can still write a normal prompt. Pro Dev supplies 
 | Goal | Command inside Claude Code |
 | --- | --- |
 | Give a narrow, well-defined task to Haiku | `/prodev-model executor haiku low` |
+| Use the exact Haiku 5.5 version at medium | `/prodev-model executor claude-haiku-5-5 medium` |
 | Use Sonnet for implementation | `/prodev-model executor sonnet medium` |
 | Ask Opus for deeper advice | `/prodev-model advisor opus high` |
 | Let the workflow choose Haiku or Sonnet per assignment | `/prodev-model executor auto medium` |
@@ -108,7 +114,9 @@ Both roles accept `haiku`, `sonnet`, `opus`, `inherit`, or the exact IDs `claude
 
 Available values: **`low` · `medium` · `high` · `xhigh` · `max` · `inherit`**.
 
-Start with `medium` for implementation and `high` for a difficult advisory question, then adjust to the task. Higher effort can use more allowance and time. The same label does not mean equal thinking across models. An omitted effort resets that role to `inherit`, which follows the caller/host setting.
+All three roles start at **medium**. Higher effort can use more allowance and time; the same label does not mean equal thinking across models. A model command with omitted effort uses **medium**. To preserve the caller/host effort explicitly, choose `inherit`.
+
+Change the main session with `/model` and `/effort`. `/prodev-model reset` restores **Sonnet 5.5 / Opus 5.5 + medium** for future role agents in this session; it does not reset the main model. Role aliases remain available, but version-pinned defaults use exact 5.5 IDs.
 
 > [!NOTE]
 > Choices are **session-only** and apply to **new Pro Dev agents**. Existing agents retain their settings; other agents and your global model settings are unaffected. Reloading/exiting clears the choices. Use native `/model` and `/effort` to change your main session.
@@ -119,7 +127,7 @@ Inspect worker details in `/tasks`. Model availability, host policy, environment
 
 Version **0.3.2** gives shell stdout/stderr and MCP text blocks **one shared 12,000-character budget per result**. Failure-containing streams/blocks are prioritized, omission is marked, and images, structured data, and exit metadata are retained. Small results stay unchanged. `/prodev-filter off` restores full text; redaction stays active. This bounds visible text, not the entire structured payload or its token count.
 
-The workflow also stops repeating delegation rules in its session-choice appendix. In identical synthetic fixtures, MCP text fell **60,355 → 11,491 characters**, shell text **19,849 → 4,022**, and Pro Dev's core + advisor skill + choice text **5,013 → 4,398**. The tested failure details survived. These are **character reductions, not measured subscription savings**. [Measurements and reproduction](docs/OPTIMIZATION.md).
+The 0.3.2 measurements also covered removing repeated delegation rules from the session-choice appendix. In identical synthetic fixtures, MCP text fell **60,355 → 11,491 characters**, shell text **19,849 → 4,022**, and Pro Dev's core + advisor skill + choice text **5,013 → 4,398**. The tested failure details survived. These are **character reductions, not measured subscription savings**. [Measurements and reproduction](docs/OPTIMIZATION.md).
 
 For a lighter starting configuration inside Claude Code:
 
@@ -128,19 +136,20 @@ For a lighter starting configuration inside Claude Code:
 /prodev-model advisor sonnet medium
 ```
 
-These choices leave your main model unchanged. Use a normal prompt for a small fix; invoke the advisor only when a second opinion is useful, and teams only for genuinely independent work. Raise effort or choose a stronger model when the task needs it. `auto` remains workflow guidance, and every agent still consumes allowance. No model defaults or account limits were changed by this optimization.
+These choices leave your main model unchanged. Use a normal prompt for a small fix; invoke the advisor only when a second opinion is useful, and teams only for genuinely independent work. Raise effort or choose a stronger model when the task needs it. `auto` remains workflow guidance, and every agent still consumes allowance. The 0.3.2 text optimization did not change model defaults or account limits; 0.3.3 adds the editable defaults described above.
 
 ## What has actually been tested?
 
-**Recorded on 2026-10-13 · Pro Dev 0.3.2 · local Claude Code 2.1.296 · Windows.**
+**Recorded on 2026-10-13 · Pro Dev 0.3.3 · local Claude Code 2.1.296 · Windows.**
 
-Native/helper/installer checks below were repeated for 0.3.2. The three arithmetic cases and Opus/Sonnet coding case are retained **0.3.1** evidence; the separate 0.3.2 coding result is linked in the current verification report.
+Native/helper/installer checks below were repeated for 0.3.3. Arithmetic and earlier coding rows are historical evidence for their labeled revisions. The current default-profile coding test is recorded separately.
 
 | Status | Test | Observed result |
 | --- | --- | --- |
 | 🟢 Passed | Claude Code updater | Installed 2.1.296 was already up to date. |
-| 🟢 Passed | Native plugin tests | **60 passed, 0 failed**; includes model choices, effort forwarding, filtering, queue, and receipts. |
+| 🟢 Passed | Native plugin tests | **64 passed, 0 failed**; includes model choices, effort forwarding, filtering, queue, and receipts. |
 | 🟢 Passed | Real CLI helper smoke | **20 helper results, 0 model turns**; nine helpers and both role/workflow definitions discovered. |
+| 🟢 Passed | **0.3.3 installed default profile** | Main Opus 5.5, `/effort status` medium, requested Opus advisor/Sonnet worker both medium; **6 independent coding acceptance cases passed**. One host tool denial is recorded. [Evidence](docs/live-coding-smoke.v0.3.3.json). |
 | 🟢 Passed | Shared text budget | Multi-block MCP and combined shell output stay within 12,000 text characters; tested late failure context, metadata, filtering-off, and small-result behavior are preserved. |
 | 🟢 Passed | **0.3.2 live Sonnet advisor + Haiku worker** | Requested `medium` / `low` effort; signed-integer bug fixed and **6 independent acceptance cases passed**. [Evidence](docs/live-coding-smoke.v0.3.2.json). |
 | 🟢 Passed | Live Haiku executor | Haiku 5.5 with requested `low` effort returned **323** for the small arithmetic task. |
@@ -228,7 +237,7 @@ For project checks, copy [the example](docs/prodev.example.json) to `.prodev.jso
 - Registers `prodev@claude-pro-dev-local` in user scope, under `%USERPROFILE%\.claude\prodev\package` or your existing `CLAUDE_CONFIG_DIR`.
 - Backs up configuration and the previous package; restores them if installation fails.
 - Disables automatic compaction and removes the old custom threshold. Use `/compact` manually.
-- Preserves model, effort, permissions, environment settings, and project instructions. `-EnableAgentTeams` explicitly enables the teams flag.
+- Adds missing defaults: main Opus 5.5 and medium effort entries for Opus/Sonnet/Haiku 5.5. Preserves existing model/effort choices unless `-ResetModelDefaults` is selected. Permissions, other environment settings, and project instructions are preserved. `-EnableAgentTeams` explicitly enables the teams flag.
 - Disables overlapping user-scope `prodev` plugins from other marketplaces to avoid duplicate commands; retains their files.
 
 Version 0.3 removes the command/file-name guard and `/prodev-guard`; Pro Dev no longer rejects tool calls by keyword. Claude Code's permissions still apply. Best-effort output redaction remains, but cannot ensure complete secret protection.
@@ -238,7 +247,7 @@ claude plugin disable prodev@claude-pro-dev-local --scope user
 claude plugin uninstall prodev@claude-pro-dev-local --scope user
 ```
 
-Saved compaction and teams preferences remain after removal. Restore a backup or edit `settings.json`: set `autoCompactEnabled` to `true` for automatic compaction, and remove the teams environment entry to disable teams in new sessions. Clear any shell-level teams flag too. Backups remain under `.claude\prodev\backups`.
+Saved model/effort, compaction, and teams preferences remain after removal. Use `/model` and `/effort` to change the model profile, or restore a backup. Restore a backup or edit `settings.json`: set `autoCompactEnabled` to `true` for automatic compaction, and remove the teams environment entry to disable teams in new sessions. Clear any shell-level teams flag too. Backups remain under `.claude\prodev\backups`.
 
 </details>
 

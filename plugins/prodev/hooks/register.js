@@ -18,7 +18,8 @@ export function register(on) {
   let nextId = 1;
   let queue = [];
   const agents = new Map();
-  let modelChoices = { executor: { model: 'sonnet', effort: 'inherit' }, advisor: { model: 'opus', effort: 'inherit' } };
+  const defaultChoices = () => ({ executor: { model: 'claude-sonnet-5-5', effort: 'medium' }, advisor: { model: 'claude-opus-5-5', effort: 'medium' } });
+  let modelChoices = defaultChoices();
   const explicitModels = new Set();
   const agentRole = type => type === 'prodev:executor' ? 'executor' : type === 'prodev:advisor' ? 'advisor' : null;
   const choicesText = () => Object.entries(modelChoices).map(([role, c]) => `${role} model: ${c.model}; effort: ${c.effort}`).join('\n');
@@ -138,7 +139,10 @@ export function register(on) {
 
   on('agent.spawn', async ($, e, next) => {
     const role = agentRole(e.subagentType);
-    const model = role && explicitModels.has(role) ? modelChoices[role].model : 'auto';
+    // Pin the default family to 5.5, while allowing a caller's different model
+    // unless the user explicitly selected an override through /prodev-model.
+    const family = role === 'executor' ? 'sonnet' : 'opus';
+    const model = role && (explicitModels.has(role) || e.model == null || e.model === family) ? modelChoices[role].model : 'auto';
     const result = await next(model === 'auto' ? e : { ...e, model: model === 'inherit' ? e.parentModel ?? 'inherit' : model });
     if (result.agentId) {
       if (agents.size >= 128) {
@@ -176,11 +180,11 @@ export function register(on) {
     const parts = e.args.trim().split(/\s+/);
     if (!e.args.trim()) return { text: choicesText() + '\nSession-only choices for new Pro Dev agents; host/model/plan restrictions still apply. /prodev-model executor auto enables task-based selection.' };
     if (parts.length === 1 && parts[0] === 'reset') {
-      modelChoices = { executor: { model: 'sonnet', effort: 'inherit' }, advisor: { model: 'opus', effort: 'inherit' } };
+      modelChoices = defaultChoices();
       explicitModels.clear();
       return { text: 'Model choices reset.\n' + choicesText() };
     }
-    const [role, model, effort = 'inherit'] = parts;
+    const [role, model, effort = 'medium'] = parts;
     const models = ['sonnet', 'haiku', 'opus', 'inherit', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5-5'];
     if (parts.length < 2 || parts.length > 3 || !['executor', 'advisor'].includes(role) || !(models.includes(model) || role === 'executor' && model === 'auto') || !['inherit', 'low', 'medium', 'high', 'xhigh', 'max'].includes(effort)) {
       return { text: 'Usage: /prodev-model [executor|advisor <sonnet|haiku|opus|inherit|full-5.5-model-id> [inherit|low|medium|high|xhigh|max] | reset]. executor also accepts auto. Thinking off is not an effort level.' };
@@ -191,7 +195,7 @@ export function register(on) {
     return { text: choicesText() + '\nApplied to future Pro Dev agents in this session; running agents keep their settings. Haiku 5.5 requires Claude Code 2.1.293+. Check actual model/effort in /tasks; host limits and environment overrides may take precedence.' };
   });
   on('command.run', { command: 'prodev-doctor' }, () => ({ text: [
-    'Pro Dev 0.3.2 doctor (this session; not an installation or security certificate)',
+    'Pro Dev 0.3.3 doctor (this session; not an installation or security certificate)',
     ...Object.entries(observed).map(([name, n]) => `${name}: ${n ? 'observed (' + n + ')' : 'not observed'}`),
     ...[...collisions].map(name => `${name}: registration failed; inspect other mods with /plugin`),
     `helpers registered: ${registered.size} | quota: ${usage.rateLimits.some(r => Number.isFinite(r.percentUsed)) ? 'host reading available' : 'unknown'}`,
@@ -200,7 +204,7 @@ export function register(on) {
     'If this command is unavailable, run the installed scripts/doctor.ps1 outside Claude.',
   ].join('\n') }));
   on('command.run', { command: 'prodev-report' }, () => ({ text: JSON.stringify({
-    schemaVersion: 2, version: '0.3.2', scope: 'session-only', modelChoices,
+    schemaVersion: 2, version: '0.3.3', scope: 'session-only', modelChoices,
     counters: { tools: calls, repeatedReads: repeated, filtered: shortened, edits, queue: queue.length, agents: agents.size },
     turns: { completed, durationMs }, tokens: observedUsage ? tokens : null,
     rateLimits: usage.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed ?? null })),

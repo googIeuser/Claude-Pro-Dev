@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3 — 2026-10-13
+
+- Fresh installation defaults to Opus 5.5 main, Sonnet 5.5 executor, Opus 5.5 advisor, with medium effort for all roles. Haiku 5.5 remains selectable.
+- Store medium effort in canonical per-model settings for Opus/Sonnet/Haiku 5.5. Preserve existing personal choices on ordinary reinstall; `-ResetModelDefaults` explicitly reapplies the profile without dropping other model fields or permissions.
+- Pin default role models to exact 5.5 IDs; reset restores those models and medium effort. Model commands with omitted effort now use medium; explicit inherit remains available.
+- Add native/default installation regression coverage, update both READMEs and diagrams, and rebuild the installer.
+
 ## 0.3.2 — 2026-10-13
 
 - Share a 12,000-character visible-text budget across MCP blocks and shell stdout/stderr. Prioritize failure-containing output, mark omissions once, and preserve non-text blocks, structured data, and exit metadata. Filtering off and small results retain their behavior.

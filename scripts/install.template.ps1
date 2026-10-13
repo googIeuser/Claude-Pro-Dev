@@ -1,11 +1,12 @@
-# Claude Pro Dev 0.3.2 - self-contained installer, Windows PowerShell 5.1+.
+# Claude Pro Dev 0.3.3 - self-contained installer, Windows PowerShell 5.1+.
 # Built from this template by scripts/build-release.ps1.
 [CmdletBinding()]
 param(
     [string]$SourcePath,
     [string]$ClaudeConfigDir,
     [switch]$UseEmbedded,
-    [switch]$EnableAgentTeams
+    [switch]$EnableAgentTeams,
+    [switch]$ResetModelDefaults
 )
 $ErrorActionPreference = 'Stop'
 $EmbeddedPackageBase64 = '__PRODEV_PAYLOAD__'
@@ -106,7 +107,7 @@ try {
     $manifest = Get-Content -LiteralPath (Join-Path $stage '.claude-plugin\marketplace.json') -Raw | ConvertFrom-Json
     if ($manifest.name -ne 'claude-pro-dev-local') { throw 'Unexpected marketplace name.' }
     $plugin = Get-Content -LiteralPath (Join-Path $stage 'plugins\prodev\.claude-plugin\plugin.json') -Raw | ConvertFrom-Json
-    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.3.2') { throw 'Unexpected plugin identity or version.' }
+    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.3.3') { throw 'Unexpected plugin identity or version.' }
     Invoke-Claude -Arguments @('plugin', 'validate', $stage, '--strict') | Out-Null
     Invoke-Claude -Arguments @('plugin', 'validate', (Join-Path $stage 'plugins\prodev'), '--strict') | Out-Null
     # Capture JSON arrays directly: @(... | ConvertFrom-Json) nests them in PS 5.1.
@@ -156,6 +157,29 @@ try {
     $settings = Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $settings.PSObject.Properties.Remove('autoCompactWindow')
     $settings | Add-Member -MemberType NoteProperty -Name autoCompactEnabled -Value $false -Force
+    # Fresh defaults are editable through native /model and /effort. Reinstalls
+    # preserve deliberate choices; resetting them requires an explicit switch.
+    if ($ResetModelDefaults -or -not $settings.model) {
+        $settings | Add-Member -NotePropertyName model -NotePropertyValue 'claude-opus-5-5' -Force
+    }
+    if (-not $settings.PSObject.Properties['modelSettings']) {
+        $settings | Add-Member -NotePropertyName modelSettings -NotePropertyValue ([pscustomobject]@{})
+    }
+    if ($null -eq $settings.modelSettings -or $settings.modelSettings -is [array] -or $settings.modelSettings -is [string] -or $settings.modelSettings -is [ValueType]) {
+        throw 'settings.modelSettings must be a JSON object.'
+    }
+    foreach ($modelId in @('claude-opus-5-5','claude-sonnet-5-5','claude-haiku-5-5')) {
+        if (-not $settings.modelSettings.PSObject.Properties[$modelId]) {
+            $settings.modelSettings | Add-Member -NotePropertyName $modelId -NotePropertyValue ([pscustomobject]@{})
+        }
+        $modelSettings = $settings.modelSettings.$modelId
+        if ($null -eq $modelSettings -or $modelSettings -is [array] -or $modelSettings -is [string] -or $modelSettings -is [ValueType]) {
+            throw "settings.modelSettings.$modelId must be a JSON object."
+        }
+        if ($ResetModelDefaults -or -not $modelSettings.effortLevel) {
+            $modelSettings | Add-Member -NotePropertyName effortLevel -NotePropertyValue 'medium' -Force
+        }
+    }
     if ($EnableAgentTeams) {
         if (-not $settings.PSObject.Properties['env']) {
             $settings | Add-Member -MemberType NoteProperty -Name env -Value ([pscustomobject]@{})
@@ -167,8 +191,9 @@ try {
     }
     [IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
     & (Join-Path $target 'scripts\verify.ps1') -ClaudeConfigDir $ClaudeConfigDir
-    Write-Host "Claude Pro Dev 0.3.2 installed. Package: $target"
+    Write-Host "Claude Pro Dev 0.3.3 installed. Package: $target"
     Write-Host "Backups: $backup"
+    Write-Host 'Fresh model defaults: Opus 5.5 main/advisor, Sonnet 5.5 executor, medium effort. Existing user choices are preserved unless -ResetModelDefaults is selected.'
     Write-Host 'Automatic context compaction is disabled. Run /compact manually when needed; restart Claude Code to apply.'
     if ($EnableAgentTeams) { Write-Host 'Experimental agent teams enabled. Restart Claude Code; use /prodev:team <task> in an interactive session.' }
     foreach ($disabledPlugin in $disabledPlugins) { Write-Host "Disabled overlapping plugin (files retained): $disabledPlugin" }

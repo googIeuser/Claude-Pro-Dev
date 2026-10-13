@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="220" viewBox="0 0 1000 220" role="img" aria-labelledby="title desc">
   <title id="title">Claude Pro Dev workflow</title>
-  <desc id="desc">Your current model coordinates an optional read-only advisor and a coding executor. Each delegated role has separate model and effort choices.</desc>
+  <desc id="desc">Opus 5.5 · medium coordinates an optional read-only advisor and a coding executor. Each delegated role has separate model and effort choices.</desc>
   <rect width="1000" height="220" rx="20" fill="#0f172a"/>
   <g font-family="Segoe UI,Arial,sans-serif">
     <text x="40" y="38" font-size="13" font-weight="700" letter-spacing="2" fill="#94a3b8">CLAUDE PRO DEV / SUBSCRIPTION WORKFLOW</text>
@@ -8,15 +8,15 @@
     <path d="m357 114 8 6-8 6 m325-12 8 6-8 6" stroke="#64748b" stroke-width="2" fill="none"/>
     <rect x="40" y="65" width="270" height="110" rx="12" fill="#172b40" stroke="#38bdf8"/>
     <text x="62" y="98" font-size="13" font-weight="700" fill="#38bdf8">01 / COORDINATOR</text>
-    <text x="62" y="128" font-size="23" font-weight="700" fill="#f8fafc">Your current model</text>
+    <text x="62" y="128" font-size="23" font-weight="700" fill="#f8fafc">Opus 5.5 · medium</text>
     <text x="62" y="152" font-size="14" fill="#cbd5e1">Understand · delegate · report</text>
     <rect x="365" y="65" width="270" height="110" rx="12" fill="#2b233b" stroke="#a78bfa"/>
     <text x="387" y="98" font-size="13" font-weight="700" fill="#a78bfa">02 / ADVISOR · OPTIONAL</text>
-    <text x="387" y="128" font-size="23" font-weight="700" fill="#f8fafc">Opus by default</text>
+    <text x="387" y="128" font-size="23" font-weight="700" fill="#f8fafc">Opus 5.5 · medium</text>
     <text x="387" y="152" font-size="14" fill="#cbd5e1">Read code · recommend an approach</text>
     <rect x="690" y="65" width="270" height="110" rx="12" fill="#24322e" stroke="#34d399"/>
     <text x="712" y="98" font-size="13" font-weight="700" fill="#34d399">03 / EXECUTOR</text>
-    <text x="712" y="128" font-size="23" font-weight="700" fill="#f8fafc">Sonnet by default</text>
+    <text x="712" y="128" font-size="23" font-weight="700" fill="#f8fafc">Sonnet 5.5 · medium</text>
     <text x="712" y="152" font-size="14" fill="#cbd5e1">Implement · test · return results</text>
     <text x="500" y="202" text-anchor="middle" font-size="13" fill="#94a3b8">Choose Haiku / Sonnet / Opus + separate effort for each delegated role</text>
   </g>

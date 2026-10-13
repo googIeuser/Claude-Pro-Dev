@@ -9,4 +9,4 @@ The deterministic helpers `/prodev`, `/prodev-doctor`, `/prodev-checks`, `/prode
 
 For an explicitly requested advisor workflow, use `/prodev:advisor <task>`; for independent team work, use `/prodev:team <task>` in an interactive session with teams enabled. These workflows consume model allowance. Pro Dev adds no command/file-name guard; retain the host's permission checks.
 
-Use `/prodev-model executor|advisor <model> [effort]` to choose future Pro Dev agents' model and reasoning in this session; executor accepts auto. Defaults are Sonnet/Opus with inherited effort. Native `/model` and `/effort` control the main session. Model selections remain subject to host access/capability limits; check `/tasks` for actual values.
+Use `/prodev-model executor|advisor <model> [effort]` to choose future Pro Dev agents' model and reasoning in this session; executor accepts auto. Defaults are Sonnet 5.5/Opus 5.5 with medium effort. Native `/model` and `/effort` control the main session. Model selections remain subject to host access/capability limits; check `/tasks` for actual values.

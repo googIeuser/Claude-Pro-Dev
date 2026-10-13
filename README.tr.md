@@ -5,7 +5,7 @@
 **Kod yazan modeli seç, uzmana danış, oturumunu takip et.**
 
 [![CI](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml/badge.svg)](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
-![Sürüm](https://img.shields.io/badge/version-0.3.2-8b5cf6)
+![Sürüm](https://img.shields.io/badge/version-0.3.3-8b5cf6)
 ![Windows](https://img.shields.io/badge/Windows-PowerShell_5.1%2B-0078d4)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.293%2B-f59e0b)
 [![MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
@@ -23,7 +23,7 @@ Pro Dev, Claude Code için bir Windows eklentisidir. Mevcut modelin işi koordin
 Giriş yaptığın **Claude aboneliğini** kullanır. Ayrı API anahtarı, API sunucusu, proxy, npm, Python veya MCP sunucusu gerektirmez. [googIeuser](https://github.com/googIeuser) tarafından geliştirilen bağımsız bir topluluk projesidir.
 
 > [!TIP]
-> İlk kullanım: kur, Claude Code'u **kod projenin klasöründe yeniden başlat**, ardından aşağıdaki üç komutluk örneği dene. Varsayılan uygulayıcı **Sonnet**, danışman **Opus**.
+> İlk kullanım: kur ve Claude Code'u **kod projenin klasöründe yeniden başlat**. Varsayılan ana model **Opus 5.5**, uygulayıcı **Sonnet 5.5**, danışman **Opus 5.5**; **üçünün eforu da medium**. Uygulayıcı için Haiku 5.5 seçilebilir.
 
 ## Hızlı başlangıç
 
@@ -62,23 +62,28 @@ Değiştireceğin kodun bulunduğu klasörü aç, ardından `claude` çalıştı
 > [!IMPORTANT]
 > Kurulum **elle sıkıştırma** tercihini kaydeder: otomatik bağlam sıkıştırma kapanır; gerektiğinde `/compact` kullan. Ayarlar ve eski paket yedeklenir. İsteğe bağlı ekip ayarı, açıkça etkinleştirmediğin sürece korunur. [Tüm kurulum değişiklikleri](#kurulum-ayarları-ve-kaldırma).
 
-### 3 · Claude Code içinde: rolleri seç ve görevi açıkça yaz
+### 3 · Claude Code içinde: varsayılanlarla başla
 
 ```text
-/prodev-model executor sonnet medium
-/prodev-model advisor opus high
+/prodev-model
 /prodev:advisor Ayrıştırıcıdaki negatif sayıların işaretini kaybetme hatasını düzelt. Yaklaşım için danışmana sor, düzeltmeyi uygulayıcıya devret ve ayrıştırıcı testlerini çalıştır.
 ```
 
-İlk iki komut model turu başlatmadan seçimleri kaydeder. Üçüncüsü model kullanan iş akışını başlatır. Hatalı davranışı ve beklediğin sonucu belirt; tek başına `31` yazmak hangi repo issue'sunu veya görevi kastettiğini açıklamaz.
+İlk komut model turu başlatmadan rol seçimlerini gösterir. İkincisi iş akışını başlatır; yeni kurulumda ayrıca model ayarlaman gerekmez. Hatalı davranışı ve beklediğin sonucu belirt; tek başına `31` yazmak hangi repo issue'sunu veya görevi kastettiğini açıklamaz.
 
 ## İş akışı nasıl çalışır?
 
-| Rol | Görevi | Varsayılan |
-| --- | --- | --- |
-| Ana oturumun | İsteği anlar, işi dağıtır ve sonucu bildirir. | Mevcut modelin |
-| `prodev:advisor` | İlgili kodu okuyup yaklaşım önerir; dosya değiştiremez, terminal komutu çalıştıramaz. | Opus |
-| `prodev:executor` | Kendisine verilen değişikliği uygular ve doğrular. | Sonnet |
+| Rol | Görevi | Varsayılan model | Efor |
+| --- | --- | --- | --- |
+| Ana oturumun | İsteği anlar, işi dağıtır ve sonucu bildirir. | **Opus 5.5** | **medium** |
+| `prodev:advisor` | İlgili kodu okuyup yaklaşım önerir; dosya değiştiremez, terminal komutu çalıştıramaz. | **Opus 5.5** | **medium** |
+| `prodev:executor` | Kendisine verilen değişikliği uygular ve doğrular. | **Sonnet 5.5**; Haiku 5.5 seçilebilir | **medium** |
+
+Yeni kurulum ana modeli ve model başına efor varsayılanlarını kaydeder. Normal yeniden kurulum, değiştirdiğin kişisel tercihleri korur. Mevcut kurulumuna bu varsayılanları uygulamak için indirdiğin dosyayı `-ResetModelDefaults` ile çalıştır. Proje, yönetim, ortam veya başlatma ayarları öncelikli olabilir.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -ResetModelDefaults
+```
 
 İkinci görüşün yararlı olacağı zor hata ve değişikliklerde **`/prodev:advisor <görev>`** kullan. Basit işlerde danışmana başvurmak şart değildir; bir engelde veya zor son kontrolde tekrar danışılabilir. Ana oturumunun modeli korunur; rol seçimleri devredilen ajanlara uygulanır.
 
@@ -93,6 +98,7 @@ Normal geliştirme için düz bir istek yazmaya devam edebilirsin. Pro Dev kısa
 | Amaç | Claude Code içindeki komut |
 | --- | --- |
 | Dar kapsamlı, net işi Haiku'ya ver | `/prodev-model executor haiku low` |
+| Tam Haiku 5.5 sürümünü medium eforla kullan | `/prodev-model executor claude-haiku-5-5 medium` |
 | Uygulama için Sonnet kullan | `/prodev-model executor sonnet medium` |
 | Opus'tan daha derin görüş al | `/prodev-model advisor opus high` |
 | Her görev için Haiku/Sonnet seçimini akışa bırak | `/prodev-model executor auto medium` |
@@ -108,7 +114,9 @@ Normal geliştirme için düz bir istek yazmaya devam edebilirsin. Pro Dev kısa
 
 Seçenekler: **`low` · `medium` · `high` · `xhigh` · `max` · `inherit`**.
 
-Uygulama için `medium`, zor bir danışmanlık sorusu için `high` ile başlayıp göreve göre değiştirebilirsin. Yüksek seviye daha fazla kullanım hakkı ve zaman harcayabilir. Aynı seviye adı farklı modellerde aynı düşünme miktarı demek değildir. Seviye yazmazsan o rol `inherit` ayarına döner ve çağıran ajanın/Claude Code'un ayarını izler.
+Üç rol de **medium** ile başlar. Yüksek seviye daha fazla kullanım hakkı ve zaman harcayabilir; aynı seviye adı farklı modellerde aynı düşünme miktarı demek değildir. Model komutunda efor yazmazsan **medium** kullanılır. Çağıran ajanın/Claude Code'un efor ayarını korumak için açıkça `inherit` seç.
+
+Ana oturumunu `/model` ve `/effort` ile değiştir. `/prodev-model reset`, bu oturumdaki yeni rol ajanlarını **Sonnet 5.5 / Opus 5.5 + medium** ayarına döndürür; ana modeli sıfırlamaz. Kısa model adları kullanılabilir; varsayılanlar tam 5.5 sürüm kimliklerine sabitlenmiştir.
 
 > [!NOTE]
 > Seçimler **yalnızca bu oturumdaki yeni Pro Dev ajanlarına** uygulanır. Açılmış ajanlar ayarlarını korur; diğer ajanlar ve genel model ayarların etkilenmez. Yeniden yükleme/çıkış seçimleri sıfırlar. Ana oturumunu değiştirmek için yerleşik `/model` ve `/effort` komutlarını kullan.
@@ -119,7 +127,7 @@ Ajan ayrıntılarını `/tasks` içinde kontrol et. Hesabındaki model erişimi,
 
 **0.3.2** sürümünde terminal stdout/stderr ve MCP metin parçaları **her sonuç için ortak 12.000 karakter sınırı** kullanır. Hata içeren çıktı/parçalara öncelik verilir; atlanan içerik belirtilir, görseller, yapılandırılmış veriler ve çıkış bilgileri korunur. Küçük sonuçlar değişmez. `/prodev-filter off` tam metni geri getirir; maskeleme açık kalır. Sınır, görünür metne uygulanır; tüm yapılandırılmış veriye veya token sayısına uygulanmaz.
 
-İş akışında oturum seçimlerine eklenen tekrar yönergeler de kaldırıldı. Aynı yapay örneklerde MCP metni **60.355 → 11.491**, terminal metni **19.849 → 4.022**, Pro Dev çekirdeği + danışman skill'i + seçim metni **5.013 → 4.398 karaktere** indi. Kontrol edilen hata ayrıntıları korundu. Bunlar **karakter azalmasıdır; ölçülmüş abonelik tasarrufu değildir**. [Ölçümler ve tekrarlama adımları](docs/OPTIMIZATION.md).
+0.3.2 ölçümlerinde oturum seçimlerine eklenen tekrar yönergelerin kaldırılması da incelendi. Aynı yapay örneklerde MCP metni **60.355 → 11.491**, terminal metni **19.849 → 4.022**, Pro Dev çekirdeği + danışman skill'i + seçim metni **5.013 → 4.398 karaktere** indi. Kontrol edilen hata ayrıntıları korundu. Bunlar **karakter azalmasıdır; ölçülmüş abonelik tasarrufu değildir**. [Ölçümler ve tekrarlama adımları](docs/OPTIMIZATION.md).
 
 Claude Code içinde daha hafif bir başlangıç ayarı:
 
@@ -128,19 +136,20 @@ Claude Code içinde daha hafif bir başlangıç ayarı:
 /prodev-model advisor sonnet medium
 ```
 
-Bu seçimler ana modelini değiştirmez. Küçük düzeltmede normal istek yaz; danışmanı ikinci görüş gerektiğinde, ekipleri bağımsız işlere ayırabildiğinde kullan. Görev gerektirdiğinde düşünme seviyesini yükselt veya daha güçlü model seç. `auto` hâlâ iş akışı yönergesidir ve her ajan kullanım hakkını harcar. Optimizasyon, varsayılan modelleri veya hesap limitlerini değiştirmez.
+Bu seçimler ana modelini değiştirmez. Küçük düzeltmede normal istek yaz; danışmanı ikinci görüş gerektiğinde, ekipleri bağımsız işlere ayırabildiğinde kullan. Görev gerektirdiğinde düşünme seviyesini yükselt veya daha güçlü model seç. `auto` hâlâ iş akışı yönergesidir ve her ajan kullanım hakkını harcar. 0.3.2 metin optimizasyonu modelleri veya hesap limitlerini değiştirmedi; 0.3.3, yukarıdaki değiştirilebilir varsayılanları ekler.
 
 ## Gerçekte neler test edildi?
 
-**Kayıt: 13 Ekim 2026 · Pro Dev 0.3.2 · yerel Claude Code 2.1.296 · Windows.**
+**Kayıt: 13 Ekim 2026 · Pro Dev 0.3.3 · yerel Claude Code 2.1.296 · Windows.**
 
-Aşağıdaki eklenti/yardımcı komut/kurulum kontrolleri 0.3.2 için tekrarlandı. Üç aritmetik denemesi ve Opus/Sonnet kod testi **0.3.1** kanıtı olarak korunuyor; ayrı 0.3.2 kod sonucu güncel doğrulama raporunda bulunuyor.
+Aşağıdaki eklenti/yardımcı komut/kurulum kontrolleri 0.3.3 için tekrarlandı. Aritmetik ve önceki kod satırları, belirtilen sürümlerin tarihsel kanıtlarıdır. Güncel varsayılan profilin kod testi ayrıca kaydedildi.
 
 | Durum | Test | Gözlenen sonuç |
 | --- | --- | --- |
 | 🟢 Geçti | Claude Code güncelleyicisi | Kurulu 2.1.296 zaten günceldi. |
-| 🟢 Geçti | Yerel eklenti testleri | **60 başarılı, 0 başarısız**; model seçimi, düşünme aktarımı, filtreleme, kuyruk ve kontrol kayıtları dahil. |
+| 🟢 Geçti | Yerel eklenti testleri | **64 başarılı, 0 başarısız**; model seçimi, düşünme aktarımı, filtreleme, kuyruk ve kontrol kayıtları dahil. |
 | 🟢 Geçti | Gerçek CLI yardımcı komut denemesi | **20 komut sonucu, 0 model turu**; dokuz yardımcı komut ve iki rol/iş akışı bulundu. |
+| 🟢 Geçti | **0.3.3 kurulu varsayılan profil** | Ana model Opus 5.5, `/effort status` medium; danışman Opus / uygulayıcı Sonnet talepleri medium. **6 bağımsız kod kontrolü geçti**. Bir araç isteği reddi ayrıca kaydedildi. [Kanıt](docs/live-coding-smoke.v0.3.3.json). |
 | 🟢 Geçti | Ortak metin sınırı | Çok parçalı MCP ve birleşik terminal metni 12.000 karakter içinde kaldı; denenen geç hata ayrıntıları, metadata, filtre kapatma ve küçük sonuç davranışı korundu. |
 | 🟢 Geçti | **0.3.2 canlı Sonnet danışman + Haiku uygulayıcı** | `medium` / `low` düşünme talepleriyle işaretli sayı hatası düzeltildi; **6 bağımsız kabul kontrolü geçti**. [Kanıt](docs/live-coding-smoke.v0.3.2.json). |
 | 🟢 Geçti | Canlı Haiku uygulayıcı | `low` düşünme talep edilen Haiku 5.5, küçük aritmetik görevinde **323** sonucunu verdi. |
@@ -228,7 +237,7 @@ Proje kontrolleri için [örneği](docs/prodev.example.json) çalışma klasör�
 - `prodev@claude-pro-dev-local` eklentisini kullanıcı kapsamında, `%USERPROFILE%\.claude\prodev\package` veya mevcut `CLAUDE_CONFIG_DIR` altında kaydeder.
 - Ayarları ve önceki paketi yedekler; kurulum başarısız olursa geri yükler.
 - Otomatik sıkıştırmayı kapatır ve eski özel eşiği kaldırır. Gerektiğinde `/compact` kullan.
-- Model, düşünme, izin, ortam ve proje yönergelerini korur. `-EnableAgentTeams` ekip ayarını açıkça etkinleştirir.
+- Eksik varsayılanları ekler: ana model Opus 5.5 ve Opus/Sonnet/Haiku 5.5 için medium efor. Mevcut model/efor seçimleri yalnızca `-ResetModelDefaults` seçilirse sıfırlanır. İzinler, diğer ortam ayarları ve proje yönergeleri korunur. `-EnableAgentTeams` ekip ayarını açıkça etkinleştirir.
 - Çift komut oluşmaması için başka marketplace'lerdeki çakışan kullanıcı kapsamlı `prodev` eklentilerini devre dışı bırakır; dosyalarını saklar.
 
 0.3 sürümünde komut/dosya adı guard'ı ve `/prodev-guard` kaldırıldı; Pro Dev anahtar kelime yüzünden araç çağrılarını reddetmez. Claude Code'un izinleri uygulanmaya devam eder. Çıktıda mümkün olduğunca maskeleme yapılır; bu, tüm sırların korunacağını garanti etmez.
@@ -238,7 +247,7 @@ claude plugin disable prodev@claude-pro-dev-local --scope user
 claude plugin uninstall prodev@claude-pro-dev-local --scope user
 ```
 
-Kaldırma sonrasında sıkıştırma ve ekip tercihleri kalır. Yedeği geri yükle veya `settings.json` içinde otomatik sıkıştırma için `autoCompactEnabled` değerini `true` yap; yeni oturumlarda ekipleri kapatmak için ilgili ortam girdisini kaldır. PowerShell'de tanımlanmış ekip değişkenini de temizle. Yedekler `.claude\prodev\backups` altında kalır.
+Kaldırma sonrasında model/efor, sıkıştırma ve ekip tercihleri kalır. Model profilini `/model` ve `/effort` ile değiştir veya yedeği geri yükle. Yedeği geri yükle veya `settings.json` içinde otomatik sıkıştırma için `autoCompactEnabled` değerini `true` yap; yeni oturumlarda ekipleri kapatmak için ilgili ortam girdisini kaldır. PowerShell'de tanımlanmış ekip değişkenini de temizle. Yedekler `.claude\prodev\backups` altında kalır.
 
 </details>
 

@@ -6,7 +6,7 @@
     {
       "name": "prodev",
       "source": "./plugins/prodev",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "description": "Engineering rules, usage HUD, queue helpers, advisor guidance and native agent team workflows."
     }
   ]

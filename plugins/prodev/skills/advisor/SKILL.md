@@ -9,7 +9,7 @@ Handle the user's task using the Pro Dev advisor workflow:
 
 $ARGUMENTS
 
-You coordinate in the user's main session model. The implementation runs in one ordinary `prodev:executor` subagent, with optional `prodev:advisor` guidance. Read the session choices appended to this skill; defaults are Sonnet executor, Opus advisor, and inherited effort. If no task or current task context exists, ask what to work on before calling an agent.
+You coordinate in the user's main session model. The implementation runs in one ordinary `prodev:executor` subagent, with optional `prodev:advisor` guidance. Read the session choices appended to this skill; defaults are Sonnet 5.5 executor, Opus 5.5 advisor, and medium effort for both. If no task or current task context exists, ask what to work on before calling an agent.
 
 Agent calls accept family aliases (`haiku`, `sonnet`, `opus`), not full model IDs. For a configured full ID, pass its family alias; the mod pins the exact ID at spawn. For inherited model omit `model`; for auto choose an alias. Omit inherited effort. Do not copy configuration values blindly into tool arguments.
 

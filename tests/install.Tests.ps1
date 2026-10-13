@@ -12,7 +12,7 @@ $installer = Join-Path $package 'install.ps1'
 Assert (Test-Path -LiteralPath $installer) 'one-command installer exists'
 $utf8 = New-Object Text.UTF8Encoding($false)
 $settingsPath = Join-Path $config 'settings.json'
-$original = '{"model":"sonnet","env":{"KEEP_ENV":"retained","CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS":"0"},"autoCompactWindow":120000,"autoCompactEnabled":true,"permissions":{"deny":["Bash(whoami)"]},"enabledPlugins":{"keep@demo":false}}'
+$original = '{"model":"sonnet","modelSettings":{"claude-opus-5-5":{"effortLevel":"high","maxEffortLevel":"xhigh"},"claude-opus-4-8":{"effortLevel":"low"}},"env":{"KEEP_ENV":"retained","CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS":"0"},"autoCompactWindow":120000,"autoCompactEnabled":true,"permissions":{"deny":["Bash(whoami)"]},"enabledPlugins":{"keep@demo":false}}'
 [IO.File]::WriteAllText($settingsPath, $original, $utf8)
 # Exercise a populated configuration, including an older prodev from another
 # marketplace. Windows PowerShell 5.1 returns JSON arrays as one pipeline item.
@@ -42,6 +42,8 @@ $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($settings.autoCompactEnabled -eq $false) 'automatic compaction is disabled'
 Assert ($null -eq $settings.PSObject.Properties['autoCompactWindow']) 'custom 120k compaction threshold is removed'
 Assert ($settings.model -eq 'sonnet') 'existing model is preserved'
+Assert ($settings.modelSettings.'claude-opus-5-5'.effortLevel -eq 'high' -and $settings.modelSettings.'claude-opus-5-5'.maxEffortLevel -eq 'xhigh') 'existing per-model effort and cap are preserved'
+Assert ($settings.modelSettings.'claude-sonnet-5-5'.effortLevel -eq 'medium') 'missing per-model effort receives the medium default'
 Assert ($settings.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS -eq '0') 'normal installation preserves the existing teams preference'
 Assert ($settings.permissions.deny[0] -eq 'Bash(whoami)') 'existing permission rules are preserved'
 Assert ($settings.enabledPlugins.'keep@demo' -eq $false) 'unrelated plugin setting is preserved'
@@ -66,10 +68,10 @@ foreach ($name in @('.claude-plugin', 'plugins')) { Copy-Item -LiteralPath (Join
 $oldManifest = Join-Path $upgradeSource 'plugins\prodev\.claude-plugin\plugin.json'
 $oldMarket = Join-Path $upgradeSource '.claude-plugin\marketplace.json'
 $oldPlugin = [IO.File]::ReadAllText($oldManifest) | ConvertFrom-Json
-$oldPlugin.version = '0.3.1'
+$oldPlugin.version = '0.3.2'
 [IO.File]::WriteAllText($oldManifest, ($oldPlugin | ConvertTo-Json -Depth 8), $utf8)
 $oldCatalog = [IO.File]::ReadAllText($oldMarket) | ConvertFrom-Json
-$oldCatalog.plugins[0].version = '0.3.1'
+$oldCatalog.plugins[0].version = '0.3.2'
 [IO.File]::WriteAllText($oldMarket, ($oldCatalog | ConvertTo-Json -Depth 8), $utf8)
 try {
     $env:CLAUDE_CONFIG_DIR = $upgradeConfig
@@ -83,7 +85,7 @@ try {
     $env:CLAUDE_CONFIG_DIR = $upgradeConfig
     $upgraded = (& $fixtureClaude plugin list --json) | ConvertFrom-Json
     $upgradedItem = @($upgraded | Where-Object { $_.id -eq 'prodev@claude-pro-dev-local' -and $_.scope -eq 'user' })
-    Assert ($upgradedItem.Count -eq 1 -and $upgradedItem[0].version -eq '0.3.2') 'v0.3.1 upgrades to v0.3.2 in the same user-scope marketplace'
+    Assert ($upgradedItem.Count -eq 1 -and $upgradedItem[0].version -eq '0.3.3') 'v0.3.2 upgrades to v0.3.3 in the same user-scope marketplace'
 } finally { $env:CLAUDE_CONFIG_DIR = $beforeFixtureEnv }
 Assert ($true) 'a second install and verification succeed'
 $marketplaceDataPath = Join-Path $config 'plugins\known_marketplaces.json'
@@ -96,6 +98,21 @@ Assert (Test-Path -LiteralPath (Join-Path $embeddedConfig 'prodev\package\plugin
 $embeddedSettings = Get-Content -LiteralPath (Join-Path $embeddedConfig 'settings.json') -Raw | ConvertFrom-Json
 Assert ($embeddedSettings.autoCompactEnabled -eq $false) 'fresh embedded installation uses manual compaction'
 Assert ($null -eq $embeddedSettings.PSObject.Properties['autoCompactWindow']) 'fresh installation has no custom compaction threshold'
+Assert ($embeddedSettings.model -eq 'claude-opus-5-5') 'fresh installation starts the main session on Opus 5.5'
+foreach ($modelId in @('claude-opus-5-5','claude-sonnet-5-5','claude-haiku-5-5')) {
+    Assert ($embeddedSettings.modelSettings.$modelId.effortLevel -eq 'medium') ('fresh medium effort for ' + $modelId)
+}
+$embeddedSettings.model = 'claude-haiku-5-5'
+$embeddedSettings.modelSettings.'claude-opus-5-5'.effortLevel = 'high'
+$embeddedSettings.modelSettings.'claude-opus-5-5' | Add-Member -NotePropertyName maxEffortLevel -NotePropertyValue 'xhigh'
+[IO.File]::WriteAllText((Join-Path $embeddedConfig 'settings.json'), ($embeddedSettings | ConvertTo-Json -Depth 100), $utf8)
+& $installer -SourcePath $package -ClaudeConfigDir $embeddedConfig
+$customSettings = Get-Content (Join-Path $embeddedConfig 'settings.json') -Raw | ConvertFrom-Json
+Assert ($customSettings.model -eq 'claude-haiku-5-5' -and $customSettings.modelSettings.'claude-opus-5-5'.effortLevel -eq 'high') 'reinstallation preserves user model and effort changes'
+& $installer -SourcePath $package -ClaudeConfigDir $embeddedConfig -ResetModelDefaults
+$resetSettings = Get-Content (Join-Path $embeddedConfig 'settings.json') -Raw | ConvertFrom-Json
+Assert ($resetSettings.model -eq 'claude-opus-5-5' -and $resetSettings.modelSettings.'claude-opus-5-5'.effortLevel -eq 'medium') 'explicit reset restores Opus 5.5 and medium effort'
+Assert ($resetSettings.modelSettings.'claude-opus-5-5'.maxEffortLevel -eq 'xhigh') 'reset preserves unrelated per-model caps'
 Assert ($env:CLAUDE_CONFIG_DIR -eq $previousEnv) 'installer restores the parent process environment'
 # Force a failure AFTER the CLI has modified installation metadata.
 $badSource = Join-Path $TestRoot 'rollback-source'
@@ -113,7 +130,7 @@ $rollbackSettings.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '0'
 $beforeFailure = [IO.File]::ReadAllText($settingsPath)
 $beforeMarketplace = [IO.File]::ReadAllText($marketplaceDataPath)
 $failed = $false
-try { & $installer -SourcePath $badSource -ClaudeConfigDir $config -EnableAgentTeams } catch { $failed = $true }
+try { & $installer -SourcePath $badSource -ClaudeConfigDir $config -EnableAgentTeams -ResetModelDefaults } catch { $failed = $true }
 Assert $failed 'failed post-install verification is reported'
 Assert ([IO.File]::ReadAllText($settingsPath) -eq $beforeFailure) 'settings are restored after a mid-install failure'
 Assert ([IO.File]::ReadAllText($marketplaceDataPath) -eq $beforeMarketplace) 'marketplace metadata is restored after failure'
