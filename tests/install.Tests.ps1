@@ -38,6 +38,9 @@ try {
 } finally { $env:CLAUDE_CONFIG_DIR = $beforeFixtureEnv }
 & $installer -SourcePath $package -ClaudeConfigDir $config
 Assert (Test-Path -LiteralPath (Join-Path $config 'prodev\package\plugins\prodev\hooks\register.js')) 'installed files survive moving original source'
+foreach ($document in @('CODE_OF_CONDUCT.md','CONTRIBUTING.md','SECURITY.md','SUPPORT.md')) {
+    Assert (Test-Path -LiteralPath (Join-Path $config ('prodev\package\' + $document))) ('source install includes linked community document ' + $document)
+}
 $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($settings.autoCompactEnabled -eq $false) 'automatic compaction is disabled'
 Assert ($null -eq $settings.PSObject.Properties['autoCompactWindow']) 'custom 120k compaction threshold is removed'
@@ -95,6 +98,9 @@ $previousEnv = $env:CLAUDE_CONFIG_DIR
 $embeddedConfig = Join-Path $TestRoot 'embedded-config'
 & ([scriptblock]::Create([IO.File]::ReadAllText($installer))) -ClaudeConfigDir $embeddedConfig -UseEmbedded
 Assert (Test-Path -LiteralPath (Join-Path $embeddedConfig 'prodev\package\plugins\prodev\hooks\register.js')) 'standalone pipeline script installs its embedded payload'
+foreach ($document in @('CODE_OF_CONDUCT.md','CONTRIBUTING.md','SECURITY.md','SUPPORT.md')) {
+    Assert (Test-Path -LiteralPath (Join-Path $embeddedConfig ('prodev\package\' + $document))) ('embedded install includes linked community document ' + $document)
+}
 $embeddedSettings = Get-Content -LiteralPath (Join-Path $embeddedConfig 'settings.json') -Raw | ConvertFrom-Json
 Assert ($embeddedSettings.autoCompactEnabled -eq $false) 'fresh embedded installation uses manual compaction'
 Assert ($null -eq $embeddedSettings.PSObject.Properties['autoCompactWindow']) 'fresh installation has no custom compaction threshold'

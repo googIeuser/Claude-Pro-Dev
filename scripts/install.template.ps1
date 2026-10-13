@@ -80,7 +80,7 @@ try {
     if ($SourcePath -and -not $UseEmbedded) {
         $SourcePath = (Resolve-Path -LiteralPath $SourcePath).ProviderPath
         if (-not (Test-Path -LiteralPath (Join-Path $SourcePath '.claude-plugin\marketplace.json'))) { throw 'SourcePath is not a Pro Dev package.' }
-        foreach ($name in @('.claude-plugin', 'plugins', 'scripts', 'docs', 'benchmarks', 'README.md', 'README.tr.md', 'LICENSE')) {
+        foreach ($name in @('.claude-plugin', 'plugins', 'scripts', 'docs', 'benchmarks', 'README.md', 'README.tr.md', 'LICENSE', 'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'SECURITY.md', 'SUPPORT.md')) {
             $from = Join-Path $SourcePath $name
             if (Test-Path -LiteralPath $from) { Copy-Item -LiteralPath $from -Destination $stage -Recurse }
         }

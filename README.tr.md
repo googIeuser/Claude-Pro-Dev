@@ -253,6 +253,8 @@ Kaldırma sonrasında model/efor, sıkıştırma ve ekip tercihleri kalır. Mode
 
 ## Geliştirme ve ek belgeler
 
+Topluluk: [Katkı rehberi](CONTRIBUTING.md#türkçe) · [Davranış kuralları](CODE_OF_CONDUCT.md#türkçe) · [Destek](SUPPORT.md#türkçe) · [Güvenlik politikası](SECURITY.md#türkçe) · [Issue formları](https://github.com/googIeuser/Claude-Pro-Dev/issues/new/choose). Türkçe ve İngilizce kullanılabilir. Güvenlik açıklarını herkese açık issue yerine özel kanaldan bildir.
+
 <details>
 <summary><strong>Doğrulama komutları ve bağımsız kurulum dosyası üretimi</strong></summary>
 

@@ -1,0 +1,26 @@
+name: Help / Yardım
+description: Ask about setup or usage / Kurulum veya kullanım hakkında soru sor
+title: "help: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with [SUPPORT.md](https://github.com/googIeuser/Claude-Pro-Dev/blob/main/SUPPORT.md) and the README troubleshooting section.
+        Önce destek rehberini ve README sorun giderme bölümünü incele. Türkçe yazabilirsin.
+        Do not include credentials, account files, private code, or complete transcripts. / Kimlik bilgisi, hesap dosyası, özel kod veya tam kayıt ekleme.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question and goal / Soru ve amaç
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions, if relevant / İlgiliyse sürümler
+      description: Pro Dev, Claude Code, Windows and PowerShell / Pro Dev, Claude Code, Windows ve PowerShell
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What you tried / Denediklerin
+      description: Include a short sanitized error excerpt if useful. / Yararlıysa temizlenmiş kısa hata çıktısı ekle.

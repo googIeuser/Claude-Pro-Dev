@@ -8,7 +8,7 @@ $TestRoot = [IO.Path]::GetFullPath($TestRoot)
 $fixture = Join-Path $TestRoot 'source with spaces'
 if (Test-Path -LiteralPath $fixture) { throw 'Use a fresh TestRoot; release tests do not overwrite a fixture.' }
 New-Item -ItemType Directory -Force -Path $fixture | Out-Null
-foreach ($name in @('.claude-plugin', 'plugins', 'scripts', 'tests', 'docs', 'benchmarks', '.github', 'README.md', 'README.tr.md', 'LICENSE', 'CHANGELOG.md', 'CONTRIBUTING.md', 'SECURITY.md', '.gitignore', '.gitattributes', '.editorconfig')) {
+foreach ($name in @('.claude-plugin', 'plugins', 'scripts', 'tests', 'docs', 'benchmarks', '.github', 'README.md', 'README.tr.md', 'LICENSE', 'CHANGELOG.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'SUPPORT.md', '.gitignore', '.gitattributes', '.editorconfig')) {
     $source = Join-Path $package $name
     if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $fixture -Recurse }
 }
@@ -39,6 +39,9 @@ try {
     Assert ($names -contains 'claude-pro-dev-v0.3.3/.claude-plugin/marketplace.json') 'marketplace dot-directory is included'
     Assert ($names -contains 'claude-pro-dev-v0.3.3/plugins/prodev/.claude-plugin/plugin.json') 'plugin dot-directory is included'
     Assert ($names -contains 'claude-pro-dev-v0.3.3/tests/install.Tests.ps1') 'source archive includes installation regression tests'
+    foreach ($document in @('CODE_OF_CONDUCT.md','CONTRIBUTING.md','SECURITY.md','SUPPORT.md')) {
+        Assert ($names -contains ('claude-pro-dev-v0.3.3/' + $document)) ('source archive includes community document ' + $document)
+    }
     Assert (@($names | Where-Object { $_ -match '/\.claude-plugin/types/' }).Count -eq 0) 'generated host and private MCP declarations are excluded'
     Assert (@($names | Where-Object { $_ -match '/(?:\.git|dist)/|/\.env$|/private-note\.txt$' }).Count -eq 0) 'Git metadata, local secrets, unrelated root files and build artifacts are excluded'
     foreach ($entry in $archive.Entries) {
@@ -60,6 +63,9 @@ $payload = New-Object IO.Compression.ZipArchive($memory, [IO.Compression.ZipArch
 try {
     $payloadNames = @($payload.Entries | ForEach-Object { $_.FullName })
     Assert ($payloadNames -contains 'scripts/verify.ps1') 'standalone payload contains installation verification'
+    foreach ($document in @('CODE_OF_CONDUCT.md','CONTRIBUTING.md','SECURITY.md','SUPPORT.md')) {
+        Assert ($payloadNames -contains $document) ('standalone payload includes linked community document ' + $document)
+    }
     Assert ($payloadNames -contains 'scripts/doctor.ps1') 'standalone payload contains external doctor'
     Assert ($payloadNames -contains 'scripts/benchmark.ps1' -and $payloadNames -contains 'benchmarks/acceptance.ps1') 'installed package can run the reproducible benchmark'
     Assert ($payloadNames -contains 'plugins/prodev/hooks/register.js') 'standalone payload contains the executable mod'

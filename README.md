@@ -253,6 +253,8 @@ Saved model/effort, compaction, and teams preferences remain after removal. Use 
 
 ## Development & further reading
 
+Community: [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Support](SUPPORT.md) · [Security policy](SECURITY.md) · [Issue forms](https://github.com/googIeuser/Claude-Pro-Dev/issues/new/choose). English and Turkish are welcome. Report vulnerabilities through the private security channel, not public issues.
+
 <details>
 <summary><strong>Run validation and build the self-contained installer</strong></summary>
 

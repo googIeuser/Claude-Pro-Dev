@@ -1,15 +1,32 @@
-name: Feature request
-description: Suggest a focused improvement
+name: Feature request / Özellik önerisi
+description: Suggest a focused improvement / Odaklı bir geliştirme öner
+title: "feature: "
 body:
+  - type: markdown
+    attributes:
+      value: |
+        English or Turkish is welcome. Check existing proposals; avoid private code or account details.
+        Türkçe yazabilirsin. Mevcut önerileri kontrol et; özel kod veya hesap bilgisi ekleme.
   - type: textarea
     id: problem
     attributes:
-      label: Problem and proposed behavior
-      description: Describe the user task and the improvement
+      label: User problem / Kullanıcı problemi
+      description: What are you trying to do, and what gets in the way? / Ne yapmak istiyorsun, engel ne?
     validations:
       required: true
   - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / Önerilen davranış
+      description: Describe the smallest useful improvement. / İşe yarayacak en küçük değişikliği anlat.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / Alternatifler
+  - type: textarea
     id: validation
     attributes:
-      label: How to measure success
-      description: Expected model/tool overhead and a practical correctness check
+      label: Success and usage impact / Başarı ölçütü ve kullanım etkisi
+      description: How could we verify correctness? Would it add agents, model requests or large output? / Doğruluk nasıl kontrol edilir? Ajan, model isteği veya büyük çıktı ekler mi?

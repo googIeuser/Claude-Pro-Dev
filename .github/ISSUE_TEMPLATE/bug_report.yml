@@ -1,25 +1,64 @@
-name: Bug report
-description: Report a reproducible installation or plugin problem
+name: Bug report / Hata bildirimi
+description: Report a reproducible Pro Dev problem / Tekrarlanabilir bir Pro Dev hatası bildir
+title: "bug: "
 body:
   - type: markdown
     attributes:
-      value: Use synthetic examples. Remove secrets, account data and personal paths. For vulnerabilities see SECURITY.md.
+      value: |
+        English or Turkish is welcome. Check the README and existing issues first.
+        Türkçe yazabilirsin. Önce README'yi ve mevcut issue'ları kontrol et.
+        **Vulnerabilities / Güvenlik açıkları:** [report privately / özel bildir](https://github.com/googIeuser/Claude-Pro-Dev/security/advisories/new).
+        Remove credentials, account files, private code and personal paths. / Kimlik bilgilerini, hesap dosyalarını, özel kodu ve kişisel yolları çıkar.
   - type: input
     id: versions
     attributes:
-      label: Versions
-      description: Claude Code, PowerShell and Pro Dev versions
+      label: Versions / Sürümler
+      description: Pro Dev, Claude Code, Windows and PowerShell versions / Pro Dev, Claude Code, Windows ve PowerShell sürümleri
+      placeholder: "Pro Dev 0.3.3; Claude Code 2.1.296; Windows 11; PowerShell 7"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area / Etkilenen bölüm
+      options:
+        - Installer / Kurulum
+        - Advisor workflow / Danışman akışı
+        - Models and effort / Model ve efor
+        - Local helpers or filtering / Yerel komutlar veya filtreleme
+        - Agent Teams (experimental) / Ekipler (deneysel)
+        - Other or unknown / Diğer veya bilinmiyor
     validations:
       required: true
   - type: textarea
     id: reproduce
     attributes:
-      label: Steps to reproduce
-      description: Smallest steps, expected behavior and actual behavior
+      label: Steps to reproduce / Tekrar adımları
+      description: Smallest example, command and relevant setup / En küçük örnek, komut ve ilgili ayarlar
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / Beklenen davranış
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / Gerçek davranış
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
-      label: Sanitized evidence
-      description: Relevant error excerpt and test results; note other active mods
+      label: Sanitized evidence / Temizlenmiş kanıt
+      description: Short error excerpt and actual check results; note other active plugins. Do not upload full transcripts. / Kısa hata çıktısı, gerçek kontrol sonucu ve diğer eklentiler; tam kayıt yükleme.
+      render: text
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before submitting / Göndermeden önce
+      options:
+        - label: I removed secrets and private information. / Sırları ve özel bilgileri çıkardım.
+          required: true

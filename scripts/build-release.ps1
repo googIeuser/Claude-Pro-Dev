@@ -30,7 +30,7 @@ function Get-ReleaseFiles([string[]]$Names) {
 $buffer = New-Object IO.MemoryStream
 $archive = New-Object IO.Compression.ZipArchive($buffer, [IO.Compression.ZipArchiveMode]::Create, $true)
 try {
-    $files = @(Get-ReleaseFiles -Names @('.claude-plugin', 'plugins', 'docs', 'scripts', 'benchmarks', 'README.md', 'README.tr.md', 'LICENSE'))
+    $files = @(Get-ReleaseFiles -Names @('.claude-plugin', 'plugins', 'docs', 'scripts', 'benchmarks', 'README.md', 'README.tr.md', 'LICENSE', 'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'SECURITY.md', 'SUPPORT.md'))
     foreach ($file in ($files | Sort-Object FullName)) {
         $relative = $file.FullName.Substring($package.Length + 1).Replace('\', '/')
         $entry = $archive.CreateEntry($relative, [IO.Compression.CompressionLevel]::Optimal)
@@ -49,7 +49,7 @@ $installer = $template.Replace('__PRODEV_PAYLOAD__', [Convert]::ToBase64String($
 [IO.File]::WriteAllText((Join-Path $OutputDirectory 'install.ps1'), $installer, $utf8)
 # Only explicit source paths are distributed. Never walk the repository root:
 # .git, dist, local credentials and unrelated root files must stay outside ZIPs.
-$sourceFiles = @(Get-ReleaseFiles -Names @('.claude-plugin', 'plugins', 'scripts', 'tests', 'docs', 'benchmarks', '.github', 'README.md', 'README.tr.md', 'LICENSE', 'CHANGELOG.md', 'CONTRIBUTING.md', 'SECURITY.md', '.gitignore', '.gitattributes', '.editorconfig', 'install.ps1'))
+$sourceFiles = @(Get-ReleaseFiles -Names @('.claude-plugin', 'plugins', 'scripts', 'tests', 'docs', 'benchmarks', '.github', 'README.md', 'README.tr.md', 'LICENSE', 'CHANGELOG.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'SUPPORT.md', '.gitignore', '.gitattributes', '.editorconfig', 'install.ps1'))
 $zipPath = Join-Path $OutputDirectory ($releaseName + '.zip')
 $zipStream = [IO.File]::Open($zipPath, [IO.FileMode]::Create)
 $release = New-Object IO.Compression.ZipArchive($zipStream, [IO.Compression.ZipArchiveMode]::Create)
