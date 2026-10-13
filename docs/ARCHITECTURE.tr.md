@@ -1,4 +1,6 @@
-# Mimari — v0.3.1
+# Mimari — v0.3.2
+
+0.3.2'de terminal akışları ve MCP metin parçaları her sonuç için ortak 12.000 görünür karakter sınırı kullanır. Hata içeren parçalara öncelik verilir; atlanan metin tek ortak bildirimle boş kalabilir. Metin dışı bloklar, yapılandırılmış veri ve metadata korunur. Bu, tüm veri/token sınırı değildir. Oturum eki yalnızca rol seçimlerini içerir; görev dağıtım kuralları sabit skill'lerde kalır. [Ölçümler](OPTIMIZATION.md).
 
 [English](ARCHITECTURE.md)
 

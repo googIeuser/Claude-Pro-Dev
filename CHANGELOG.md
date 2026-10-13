@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 — 2026-10-13
+
+- Share a 12,000-character visible-text budget across MCP blocks and shell stdout/stderr. Prioritize failure-containing output, mark omissions once, and preserve non-text blocks, structured data, and exit metadata. Filtering off and small results retain their behavior.
+- Remove duplicated delegation instructions from the session-choice appendix; keep stable rules in the workflow skills and leave model/effort defaults unchanged.
+- Add five native regression/preservation cases and a reproducible character benchmark. Character reduction is not a measurement of subscription savings.
+- Document optional lighter role settings in both READMEs and retain prior live evidence with its original version.
+
 ## 0.3.1 — 2026-10-13
 
 - Add session-only `/prodev-model` choices for executor/advisor models and separate reasoning effort, including full 5.5 IDs, inherited settings, and executor auto mode.

@@ -1,4 +1,6 @@
-# Architecture — v0.3.1
+# Architecture — v0.3.2
+
+In 0.3.2, shell streams and MCP text blocks share one 12,000-character visible-text budget per result. Failure-containing pieces get priority; omitted text may be empty with one aggregate notice. Non-text blocks, structured content, and metadata stay intact. This is not a total payload/token cap. Session choices append only role settings; delegation rules remain in the static skills. [Measurements](OPTIMIZATION.md).
 
 [Türkçe](ARCHITECTURE.tr.md)
 

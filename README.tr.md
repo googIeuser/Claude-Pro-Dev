@@ -5,7 +5,7 @@
 **Kod yazan modeli seç, uzmana danış, oturumunu takip et.**
 
 [![CI](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml/badge.svg)](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
-![Sürüm](https://img.shields.io/badge/version-0.3.1-8b5cf6)
+![Sürüm](https://img.shields.io/badge/version-0.3.2-8b5cf6)
 ![Windows](https://img.shields.io/badge/Windows-PowerShell_5.1%2B-0078d4)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.293%2B-f59e0b)
 [![MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
@@ -115,15 +115,34 @@ Uygulama için `medium`, zor bir danışmanlık sorusu için `high` ile başlay�
 
 Ajan ayrıntılarını `/tasks` içinde kontrol et. Hesabındaki model erişimi, Claude Code politikaları, ortam değişkenleri ve modelin desteklediği özellikler öncelikli olabilir. 5.5 modelleri uyarlanabilir düşünme kullanır; burada ajan başına düşünmeyi tamamen kapatan destekli bir seçenek yoktur. [Resmî model ayarları](https://code.claude.com/docs/en/model-config).
 
+## Gereksiz bağlamı azaltma
+
+**0.3.2** sürümünde terminal stdout/stderr ve MCP metin parçaları **her sonuç için ortak 12.000 karakter sınırı** kullanır. Hata içeren çıktı/parçalara öncelik verilir; atlanan içerik belirtilir, görseller, yapılandırılmış veriler ve çıkış bilgileri korunur. Küçük sonuçlar değişmez. `/prodev-filter off` tam metni geri getirir; maskeleme açık kalır. Sınır, görünür metne uygulanır; tüm yapılandırılmış veriye veya token sayısına uygulanmaz.
+
+İş akışında oturum seçimlerine eklenen tekrar yönergeler de kaldırıldı. Aynı yapay örneklerde MCP metni **60.355 → 11.491**, terminal metni **19.849 → 4.022**, Pro Dev çekirdeği + danışman skill'i + seçim metni **5.013 → 4.398 karaktere** indi. Kontrol edilen hata ayrıntıları korundu. Bunlar **karakter azalmasıdır; ölçülmüş abonelik tasarrufu değildir**. [Ölçümler ve tekrarlama adımları](docs/OPTIMIZATION.md).
+
+Claude Code içinde daha hafif bir başlangıç ayarı:
+
+```text
+/prodev-model executor auto low
+/prodev-model advisor sonnet medium
+```
+
+Bu seçimler ana modelini değiştirmez. Küçük düzeltmede normal istek yaz; danışmanı ikinci görüş gerektiğinde, ekipleri bağımsız işlere ayırabildiğinde kullan. Görev gerektirdiğinde düşünme seviyesini yükselt veya daha güçlü model seç. `auto` hâlâ iş akışı yönergesidir ve her ajan kullanım hakkını harcar. Optimizasyon, varsayılan modelleri veya hesap limitlerini değiştirmez.
+
 ## Gerçekte neler test edildi?
 
-**Kayıt: 13 Ekim 2026 · Pro Dev 0.3.1 · yerel Claude Code 2.1.296 · Windows.**
+**Kayıt: 13 Ekim 2026 · Pro Dev 0.3.2 · yerel Claude Code 2.1.296 · Windows.**
+
+Aşağıdaki eklenti/yardımcı komut/kurulum kontrolleri 0.3.2 için tekrarlandı. Üç aritmetik denemesi ve Opus/Sonnet kod testi **0.3.1** kanıtı olarak korunuyor; ayrı 0.3.2 kod sonucu güncel doğrulama raporunda bulunuyor.
 
 | Durum | Test | Gözlenen sonuç |
 | --- | --- | --- |
 | 🟢 Geçti | Claude Code güncelleyicisi | Kurulu 2.1.296 zaten günceldi. |
-| 🟢 Geçti | Yerel eklenti testleri | **55 başarılı, 0 başarısız**; model seçimi, düşünme aktarımı, filtreleme, kuyruk ve kontrol kayıtları dahil. |
+| 🟢 Geçti | Yerel eklenti testleri | **60 başarılı, 0 başarısız**; model seçimi, düşünme aktarımı, filtreleme, kuyruk ve kontrol kayıtları dahil. |
 | 🟢 Geçti | Gerçek CLI yardımcı komut denemesi | **20 komut sonucu, 0 model turu**; dokuz yardımcı komut ve iki rol/iş akışı bulundu. |
+| 🟢 Geçti | Ortak metin sınırı | Çok parçalı MCP ve birleşik terminal metni 12.000 karakter içinde kaldı; denenen geç hata ayrıntıları, metadata, filtre kapatma ve küçük sonuç davranışı korundu. |
+| 🟢 Geçti | **0.3.2 canlı Sonnet danışman + Haiku uygulayıcı** | `medium` / `low` düşünme talepleriyle işaretli sayı hatası düzeltildi; **6 bağımsız kabul kontrolü geçti**. [Kanıt](docs/live-coding-smoke.v0.3.2.json). |
 | 🟢 Geçti | Canlı Haiku uygulayıcı | `low` düşünme talep edilen Haiku 5.5, küçük aritmetik görevinde **323** sonucunu verdi. |
 | 🟢 Geçti | Canlı Sonnet danışman + uygulayıcı | Ayrı `high` / `medium` düşünme talepleriyle aritmetik sonucu **437**. |
 | 🟢 Geçti | Canlı `auto` seçimi | Dar kapsamlı aritmetik işinde Haiku seçildi; sonuç **91**. |

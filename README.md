@@ -5,7 +5,7 @@
 **Choose your coding worker, ask a specialist, and keep track of the session.**
 
 [![CI](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml/badge.svg)](https://github.com/googIeuser/Claude-Pro-Dev/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.1-8b5cf6)
+![Version](https://img.shields.io/badge/version-0.3.2-8b5cf6)
 ![Windows](https://img.shields.io/badge/Windows-PowerShell_5.1%2B-0078d4)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.293%2B-f59e0b)
 [![MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
@@ -115,15 +115,34 @@ Start with `medium` for implementation and `high` for a difficult advisory quest
 
 Inspect worker details in `/tasks`. Model availability, host policy, environment overrides, and capability limits can take precedence. The 5.5 models use adaptive reasoning; this plugin provides no supported per-agent thinking-off switch. [Official model configuration](https://code.claude.com/docs/en/model-config).
 
+## Reduce unnecessary context
+
+Version **0.3.2** gives shell stdout/stderr and MCP text blocks **one shared 12,000-character budget per result**. Failure-containing streams/blocks are prioritized, omission is marked, and images, structured data, and exit metadata are retained. Small results stay unchanged. `/prodev-filter off` restores full text; redaction stays active. This bounds visible text, not the entire structured payload or its token count.
+
+The workflow also stops repeating delegation rules in its session-choice appendix. In identical synthetic fixtures, MCP text fell **60,355 → 11,491 characters**, shell text **19,849 → 4,022**, and Pro Dev's core + advisor skill + choice text **5,013 → 4,398**. The tested failure details survived. These are **character reductions, not measured subscription savings**. [Measurements and reproduction](docs/OPTIMIZATION.md).
+
+For a lighter starting configuration inside Claude Code:
+
+```text
+/prodev-model executor auto low
+/prodev-model advisor sonnet medium
+```
+
+These choices leave your main model unchanged. Use a normal prompt for a small fix; invoke the advisor only when a second opinion is useful, and teams only for genuinely independent work. Raise effort or choose a stronger model when the task needs it. `auto` remains workflow guidance, and every agent still consumes allowance. No model defaults or account limits were changed by this optimization.
+
 ## What has actually been tested?
 
-**Recorded on 2026-10-13 · Pro Dev 0.3.1 · local Claude Code 2.1.296 · Windows.**
+**Recorded on 2026-10-13 · Pro Dev 0.3.2 · local Claude Code 2.1.296 · Windows.**
+
+Native/helper/installer checks below were repeated for 0.3.2. The three arithmetic cases and Opus/Sonnet coding case are retained **0.3.1** evidence; the separate 0.3.2 coding result is linked in the current verification report.
 
 | Status | Test | Observed result |
 | --- | --- | --- |
 | 🟢 Passed | Claude Code updater | Installed 2.1.296 was already up to date. |
-| 🟢 Passed | Native plugin tests | **55 passed, 0 failed**; includes model choices, effort forwarding, filtering, queue, and receipts. |
+| 🟢 Passed | Native plugin tests | **60 passed, 0 failed**; includes model choices, effort forwarding, filtering, queue, and receipts. |
 | 🟢 Passed | Real CLI helper smoke | **20 helper results, 0 model turns**; nine helpers and both role/workflow definitions discovered. |
+| 🟢 Passed | Shared text budget | Multi-block MCP and combined shell output stay within 12,000 text characters; tested late failure context, metadata, filtering-off, and small-result behavior are preserved. |
+| 🟢 Passed | **0.3.2 live Sonnet advisor + Haiku worker** | Requested `medium` / `low` effort; signed-integer bug fixed and **6 independent acceptance cases passed**. [Evidence](docs/live-coding-smoke.v0.3.2.json). |
 | 🟢 Passed | Live Haiku executor | Haiku 5.5 with requested `low` effort returned **323** for the small arithmetic task. |
 | 🟢 Passed | Live Sonnet advisor + executor | Separate requested `high` / `medium` effort; arithmetic result **437**. |
 | 🟢 Passed | Live `auto` selection | Selected Haiku for a narrow arithmetic task; result **91**. |

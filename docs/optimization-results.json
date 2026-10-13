@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-13",
+  "baselineCommit": "c91562b406e2d5b3bc2287214acb948a0c1a3418",
+  "scenario": "Controlled identical text fixtures, default role choices, Node 24.19.0",
+  "before": {
+    "pluginVersion": "0.3.1",
+    "unit": "JavaScript string characters; not model tokens or subscription allowance",
+    "policySha256": "b316647ccc5c1355e3d5caaa66644f4208169545f243217fe028548f5d7b3e0d",
+    "registerSha256": "4fb805ad937ddbe4f9891bd97dcf8460918c9371d9ad71ec27ed96117770ed5b",
+    "coreCharacters": 1477,
+    "advisorSkillCharacters": 2776,
+    "injectedChoiceCharacters": 760,
+    "corePlusAdvisorPromptCharacters": 5013,
+    "mcpText": {
+      "input": 60355,
+      "output": 60355,
+      "lateFailureRetained": true
+    },
+    "shellText": {
+      "input": 19849,
+      "output": 19849,
+      "failureRetained": true,
+      "exitCode": 7
+    }
+  },
+  "after": {
+    "pluginVersion": "0.3.2",
+    "unit": "JavaScript string characters; not model tokens or subscription allowance",
+    "policySha256": "e4204f5a0222fae898ed411995caba58b708d34921b5e20eedaca416d0ddaf56",
+    "registerSha256": "e33608073ed54705b0ab0a88274fc67878a71b5db22b920865aaee1ef100e450",
+    "coreCharacters": 1477,
+    "advisorSkillCharacters": 2776,
+    "injectedChoiceCharacters": 145,
+    "corePlusAdvisorPromptCharacters": 4398,
+    "mcpText": {
+      "input": 60355,
+      "output": 11491,
+      "lateFailureRetained": true
+    },
+    "shellText": {
+      "input": 19849,
+      "output": 4022,
+      "failureRetained": true,
+      "exitCode": 7
+    }
+  },
+  "limits": [
+    "Character counts are not model token counts or subscription quota measurements",
+    "MCP non-text blocks and structuredContent are preserved; these are not a total payload or token cap",
+    "Failure context is best effort; omitted evidence may require targeted follow-up output"
+  ]
+}

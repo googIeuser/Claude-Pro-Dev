@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-13",
+  "pluginVersion": "0.3.2",
+  "claudeVersion": "2.1.296 (Claude Code)",
+  "test": "Signed integer parser bugfix with Sonnet advisor and Haiku executor",
+  "pluginSource": "repository plugins/prodev",
+  "isolatedOtherPlugins": true,
+  "originalBugReproduced": true,
+  "independentAcceptancePass": true,
+  "independentCases": 6,
+  "visibleCheckUnchanged": true,
+  "exitCode": 0,
+  "timedOut": false,
+  "modelError": false,
+  "resolvedModels": [
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5"
+  ],
+  "agentCalls": [
+    {
+      "subagent_type": "prodev:advisor",
+      "model": "sonnet",
+      "effort": "medium"
+    },
+    {
+      "subagent_type": "prodev:executor",
+      "model": "haiku",
+      "effort": "low"
+    }
+  ],
+  "permissionDenials": 0,
+  "requestedEffortEvidence": "Agent invocation arguments; provider reasoning budgets were not measured",
+  "scope": "One isolated coding task, not a general quality or savings benchmark; native teams not exercised",
+  "policySha256": "e4204f5a0222fae898ed411995caba58b708d34921b5e20eedaca416d0ddaf56",
+  "registerSha256": "e33608073ed54705b0ab0a88274fc67878a71b5db22b920865aaee1ef100e450",
+  "fixture": "benchmarks/signed-total",
+  "acceptance": "benchmarks/acceptance.ps1",
+  "coordinator": {
+    "effort": "low",
+    "model": "sonnet"
+  }
+}

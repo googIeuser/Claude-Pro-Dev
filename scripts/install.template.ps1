@@ -1,4 +1,4 @@
-# Claude Pro Dev 0.3.1 - self-contained installer, Windows PowerShell 5.1+.
+# Claude Pro Dev 0.3.2 - self-contained installer, Windows PowerShell 5.1+.
 # Built from this template by scripts/build-release.ps1.
 [CmdletBinding()]
 param(
@@ -106,7 +106,7 @@ try {
     $manifest = Get-Content -LiteralPath (Join-Path $stage '.claude-plugin\marketplace.json') -Raw | ConvertFrom-Json
     if ($manifest.name -ne 'claude-pro-dev-local') { throw 'Unexpected marketplace name.' }
     $plugin = Get-Content -LiteralPath (Join-Path $stage 'plugins\prodev\.claude-plugin\plugin.json') -Raw | ConvertFrom-Json
-    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.3.1') { throw 'Unexpected plugin identity or version.' }
+    if ($plugin.name -ne 'prodev' -or $plugin.version -ne '0.3.2') { throw 'Unexpected plugin identity or version.' }
     Invoke-Claude -Arguments @('plugin', 'validate', $stage, '--strict') | Out-Null
     Invoke-Claude -Arguments @('plugin', 'validate', (Join-Path $stage 'plugins\prodev'), '--strict') | Out-Null
     # Capture JSON arrays directly: @(... | ConvertFrom-Json) nests them in PS 5.1.
@@ -167,7 +167,7 @@ try {
     }
     [IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding($false)))
     & (Join-Path $target 'scripts\verify.ps1') -ClaudeConfigDir $ClaudeConfigDir
-    Write-Host "Claude Pro Dev 0.3.1 installed. Package: $target"
+    Write-Host "Claude Pro Dev 0.3.2 installed. Package: $target"
     Write-Host "Backups: $backup"
     Write-Host 'Automatic context compaction is disabled. Run /compact manually when needed; restart Claude Code to apply.'
     if ($EnableAgentTeams) { Write-Host 'Experimental agent teams enabled. Restart Claude Code; use /prodev:team <task> in an interactive session.' }

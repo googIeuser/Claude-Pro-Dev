@@ -70,17 +70,18 @@ export function filterResult(tool, value) {
   const shell = tool === 'Bash' || tool === 'PowerShell';
   if (shell && typeof value === 'string') return filterText(value);
   if (shell && value && typeof value === 'object') {
-    const stdout = filterText(value.stdout);
-    const stderr = filterText(value.stderr);
+    const [stdout, stderr] = filterTextGroup([value.stdout, value.stderr]);
     return stdout === value.stdout && stderr === value.stderr ? value : { ...value, stdout, stderr };
   }
   if (!tool.startsWith('mcp__')) return value;
   if (typeof value === 'string') return filterText(value);
   if (value && typeof value === 'object' && Array.isArray(value.content)) {
+    const texts = filterTextGroup(value.content.filter(b => b?.type === 'text' && typeof b.text === 'string').map(b => b.text));
+    let index = 0;
     let changed = false;
     const content = value.content.map(block => {
       if (block?.type !== 'text' || typeof block.text !== 'string') return block;
-      const text = filterText(block.text);
+      const text = texts[index++];
       if (text === block.text) return block;
       changed = true;
       return { ...block, text };
@@ -88,6 +89,31 @@ export function filterResult(tool, value) {
     return changed ? { ...value, content } : value;
   }
   return value;
+}
+
+// One visible-text budget per result, rather than one budget per MCP block or
+// shell stream. Preserve typed blocks/metadata; empty omitted text blocks share
+// one notice so a large block count cannot multiply the notice overhead.
+function filterTextGroup(values, maxChars = 12000) {
+  const bounded = values.map(value => filterText(value));
+  if (bounded.reduce((n, value) => n + (typeof value === 'string' ? value.length : 0), 0) <= maxChars) return bounded;
+  const indices = values.flatMap((value, i) => typeof value === 'string' ? [i] : []);
+  const notice = '[Pro Dev: combined text output shortened; some blocks/streams may be empty. Omitted content; failure context is best effort. Rerun a targeted command or disable filtering for full evidence.]\n';
+  const order = new Set([
+    ...indices.filter(i => /\b(?:error|fail(?:ed|ure)?|exception|traceback|fatal|panic|assert(?:ion)?)\b/i.test(values[i])),
+    indices[0], indices[indices.length - 1], ...indices,
+  ]);
+  const output = values.map(value => typeof value === 'string' ? '' : value);
+  let remaining = maxChars - notice.length;
+  for (const i of order) {
+    if (remaining < 512) break;
+    const budget = Math.min(4000, remaining);
+    const text = filterText(values[i], budget, Math.min(160, Math.floor(budget / 80)));
+    output[i] = text;
+    remaining -= text.length;
+  }
+  output[indices[0]] = notice + output[indices[0]];
+  return output;
 }
 
 export const isShell = tool => tool === 'Bash' || tool === 'PowerShell';

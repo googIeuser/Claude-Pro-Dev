@@ -89,7 +89,9 @@ export function register(on) {
 
   on('skill.prompt', { skill: ['prodev:advisor', 'prodev:team'] }, async ($, e, next) => {
     const result = await next(e);
-    return { ...result, text: result.text + '\n\nPro Dev session choices (requested, subject to host availability):\n' + choicesText() + '\nUse these choices for new agents. The Agent tool model argument accepts family aliases only: haiku, sonnet, opus. For a full model ID use its family alias in the tool call; Pro Dev applies the exact ID at the native spawn boundary. Never pass a full ID, inherit, or auto as Agent.model. For inherit omit model. For executor auto, choose haiku only for narrow, clearly specified work; use sonnet for complex, ambiguous, or multi-file changes. State your choice before delegation. Inherit effort means omit the effort argument and preserve the host/caller setting. These choices do not change the main session model.' };
+    // Stable delegation rules live in each skill. Append only session choices,
+    // avoiding a second copy of alias, auto, inheritance, and permission rules.
+    return { ...result, text: result.text + '\n\nPro Dev session choices (requested; subject to host availability):\n' + choicesText() };
   });
 
   on('session.measure', ($, e, next) => {
@@ -189,7 +191,7 @@ export function register(on) {
     return { text: choicesText() + '\nApplied to future Pro Dev agents in this session; running agents keep their settings. Haiku 5.5 requires Claude Code 2.1.293+. Check actual model/effort in /tasks; host limits and environment overrides may take precedence.' };
   });
   on('command.run', { command: 'prodev-doctor' }, () => ({ text: [
-    'Pro Dev 0.3.1 doctor (this session; not an installation or security certificate)',
+    'Pro Dev 0.3.2 doctor (this session; not an installation or security certificate)',
     ...Object.entries(observed).map(([name, n]) => `${name}: ${n ? 'observed (' + n + ')' : 'not observed'}`),
     ...[...collisions].map(name => `${name}: registration failed; inspect other mods with /plugin`),
     `helpers registered: ${registered.size} | quota: ${usage.rateLimits.some(r => Number.isFinite(r.percentUsed)) ? 'host reading available' : 'unknown'}`,
@@ -198,7 +200,7 @@ export function register(on) {
     'If this command is unavailable, run the installed scripts/doctor.ps1 outside Claude.',
   ].join('\n') }));
   on('command.run', { command: 'prodev-report' }, () => ({ text: JSON.stringify({
-    schemaVersion: 2, version: '0.3.1', scope: 'session-only', modelChoices,
+    schemaVersion: 2, version: '0.3.2', scope: 'session-only', modelChoices,
     counters: { tools: calls, repeatedReads: repeated, filtered: shortened, edits, queue: queue.length, agents: agents.size },
     turns: { completed, durationMs }, tokens: observedUsage ? tokens : null,
     rateLimits: usage.rateLimits.map(r => ({ kind: r.kind, percentUsed: r.percentUsed ?? null })),
